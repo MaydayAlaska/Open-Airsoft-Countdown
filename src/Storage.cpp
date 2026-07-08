@@ -9,7 +9,7 @@ namespace
 	const char *ConfigFilePath = "/config.json";
 	const char *UsersFilePath = "/users.json";
 
-	const char *DefaultAdminPassword = "admin";
+	const char *DefaultAdminPin = "000000";
 	const char *DefaultBleName = "Open Airsoft Countdown";
 	const bool DefaultSoundEnabled = true;
 }
@@ -77,7 +77,7 @@ bool Storage::saveConfig(const AppConfig &config)
 
 	JsonDocument document;
 
-	document["adminPassword"] = config.adminPassword;
+	document["adminPin"] = config.adminPin;
 	document["bleName"] = config.bleName;
 	document["soundEnabled"] = config.soundEnabled;
 
@@ -99,7 +99,7 @@ bool Storage::createDefaultConfig()
 {
 	AppConfig defaultConfig;
 
-	defaultConfig.adminPassword = DefaultAdminPassword;
+	defaultConfig.adminPin = DefaultAdminPin;
 	defaultConfig.bleName = DefaultBleName;
 	defaultConfig.soundEnabled = DefaultSoundEnabled;
 
@@ -142,18 +142,39 @@ bool Storage::loadConfig()
 	if (error)
 	{
 		Serial.println("config.json is invalid. Recreating default config...");
+		return createDefaultConfig();
+	}
 
-		if (!createDefaultConfig())
+	const char *adminPin = document["adminPin"] | DefaultAdminPin;
+	const char *bleName = document["bleName"] | DefaultBleName;
+
+	m_config.adminPin = adminPin;
+	m_config.bleName = bleName;
+	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
+
+	if (!isValidAdminPin(m_config.adminPin))
+	{
+		m_config.adminPin = DefaultAdminPin;
+		saveConfig(m_config);
+	}
+
+	return true;
+}
+
+bool Storage::isValidAdminPin(const String &pin) const
+{
+	if (pin.length() != 6)
+	{
+		return false;
+	}
+
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		if (pin[i] < '0' || pin[i] > '9')
 		{
 			return false;
 		}
-
-		return true;
 	}
-
-	m_config.adminPassword = document["adminPassword"] | DefaultAdminPassword;
-	m_config.bleName = document["bleName"] | DefaultBleName;
-	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 
 	return true;
 }

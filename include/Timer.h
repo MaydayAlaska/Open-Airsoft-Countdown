@@ -21,11 +21,13 @@ public:
 	uint32_t getRemainingSeconds() const;
 
 private:
+	static constexpr uint8_t StatusLedPin = 2;
+
 	uint32_t m_durationSeconds = 0;
 	uint32_t m_remainingSeconds = 0;
-
 	uint32_t m_lastTickMillis = 0;
 
 	bool m_running = false;
 	bool m_finished = false;
+	bool m_ledState = false;
 };

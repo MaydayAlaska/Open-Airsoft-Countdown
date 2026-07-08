@@ -4,7 +4,7 @@
 
 struct AppConfig
 {
-	String adminPassword;
+	String adminPin;
 	String bleName;
 	bool soundEnabled;
 };
@@ -21,6 +21,8 @@ private:
 	bool createDefaultConfig();
 	bool createDefaultUsers();
 	bool loadConfig();
+
+	bool isValidAdminPin(const String &pin) const;
 
 	AppConfig m_config;
 };

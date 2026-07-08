@@ -4,11 +4,15 @@ bool Timer::begin()
 {
 	Serial.println("Initializing timer...");
 
+	pinMode(StatusLedPin, OUTPUT);
+	digitalWrite(StatusLedPin, LOW);
+
 	m_durationSeconds = 0;
 	m_remainingSeconds = 0;
 	m_lastTickMillis = millis();
 	m_running = false;
 	m_finished = false;
+	m_ledState = false;
 
 	Serial.println("Timer initialized.");
 
@@ -31,6 +35,9 @@ void Timer::update()
 
 	m_lastTickMillis = currentMillis;
 
+	m_ledState = !m_ledState;
+	digitalWrite(StatusLedPin, m_ledState ? HIGH : LOW);
+
 	if (m_remainingSeconds > 0)
 	{
 		m_remainingSeconds--;
@@ -44,6 +51,8 @@ void Timer::update()
 		m_running = false;
 		m_finished = true;
 
+		digitalWrite(StatusLedPin, HIGH);
+
 		Serial.println("Timer finished.");
 	}
 }
@@ -53,6 +62,9 @@ void Timer::setDuration(uint32_t seconds)
 	m_durationSeconds = seconds;
 	m_remainingSeconds = seconds;
 	m_finished = false;
+	m_ledState = false;
+
+	digitalWrite(StatusLedPin, LOW);
 
 	Serial.print("Timer duration set to ");
 	Serial.print(seconds);
@@ -75,6 +87,9 @@ void Timer::start()
 	m_lastTickMillis = millis();
 	m_running = true;
 	m_finished = false;
+	m_ledState = false;
+
+	digitalWrite(StatusLedPin, LOW);
 
 	Serial.println("Timer started.");
 }
@@ -82,6 +97,9 @@ void Timer::start()
 void Timer::stop()
 {
 	m_running = false;
+	m_ledState = false;
+
+	digitalWrite(StatusLedPin, LOW);
 
 	Serial.println("Timer stopped.");
 }
@@ -91,6 +109,9 @@ void Timer::reset()
 	m_running = false;
 	m_finished = false;
 	m_remainingSeconds = m_durationSeconds;
+	m_ledState = false;
+
+	digitalWrite(StatusLedPin, LOW);
 
 	Serial.println("Timer reset.");
 }
