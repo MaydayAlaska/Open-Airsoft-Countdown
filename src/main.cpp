@@ -23,6 +23,8 @@ void setup()
 			delay(1000);
 		}
 	}
+
+	Serial.println("System ready.");
 }
 
 void loop()
