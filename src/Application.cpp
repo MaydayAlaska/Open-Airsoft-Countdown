@@ -7,6 +7,11 @@ bool Application::begin()
 		return false;
 	}
 
+	if (!m_users.begin())
+	{
+		return false;
+	}
+
 	if (!m_display.begin())
 	{
 		return false;

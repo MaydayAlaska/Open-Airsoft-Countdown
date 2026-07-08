@@ -8,6 +8,10 @@ namespace
 {
 	const char *ConfigFilePath = "/config.json";
 	const char *UsersFilePath = "/users.json";
+
+	const char *DefaultAdminPassword = "admin";
+	const char *DefaultBleName = "Open Airsoft Countdown";
+	const bool DefaultSoundEnabled = true;
 }
 
 bool Storage::begin()
@@ -42,12 +46,27 @@ bool Storage::begin()
 		}
 	}
 
+	if (!loadConfig())
+	{
+		Serial.println("Failed to load config.json.");
+		return false;
+	}
+
 	Serial.println("Storage initialized.");
+	Serial.print("BLE name: ");
+	Serial.println(m_config.bleName);
+	Serial.print("Sound enabled: ");
+	Serial.println(m_config.soundEnabled ? "yes" : "no");
 
 	return true;
 }
 
-bool Storage::createDefaultConfig()
+const AppConfig &Storage::getConfig() const
+{
+	return m_config;
+}
+
+bool Storage::saveConfig(const AppConfig &config)
 {
 	File file = LittleFS.open(ConfigFilePath, "w");
 
@@ -58,15 +77,33 @@ bool Storage::createDefaultConfig()
 
 	JsonDocument document;
 
-	document["adminPassword"] = "admin";
-	document["bleName"] = "Open Airsoft Countdown";
-	document["soundEnabled"] = true;
+	document["adminPassword"] = config.adminPassword;
+	document["bleName"] = config.bleName;
+	document["soundEnabled"] = config.soundEnabled;
 
-	serializeJsonPretty(document, file);
+	const size_t bytesWritten = serializeJsonPretty(document, file);
 
 	file.close();
 
+	if (bytesWritten == 0)
+	{
+		return false;
+	}
+
+	m_config = config;
+
 	return true;
+}
+
+bool Storage::createDefaultConfig()
+{
+	AppConfig defaultConfig;
+
+	defaultConfig.adminPassword = DefaultAdminPassword;
+	defaultConfig.bleName = DefaultBleName;
+	defaultConfig.soundEnabled = DefaultSoundEnabled;
+
+	return saveConfig(defaultConfig);
 }
 
 bool Storage::createDefaultUsers()
@@ -81,9 +118,42 @@ bool Storage::createDefaultUsers()
 	JsonDocument document;
 	document.to<JsonArray>();
 
-	serializeJsonPretty(document, file);
+	const size_t bytesWritten = serializeJsonPretty(document, file);
 
 	file.close();
+
+	return bytesWritten > 0;
+}
+
+bool Storage::loadConfig()
+{
+	File file = LittleFS.open(ConfigFilePath, "r");
+
+	if (!file)
+	{
+		return false;
+	}
+
+	JsonDocument document;
+	DeserializationError error = deserializeJson(document, file);
+
+	file.close();
+
+	if (error)
+	{
+		Serial.println("config.json is invalid. Recreating default config...");
+
+		if (!createDefaultConfig())
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	m_config.adminPassword = document["adminPassword"] | DefaultAdminPassword;
+	m_config.bleName = document["bleName"] | DefaultBleName;
+	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 
 	return true;
 }
