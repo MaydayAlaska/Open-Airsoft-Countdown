@@ -1,13 +1,10 @@
 #pragma once
 
-#include "Display.h"
-
-class Application
+class Display
 {
 public:
 	bool begin();
 	void update();
 
 private:
-	Display m_display;
 };

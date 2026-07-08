@@ -2,9 +2,15 @@
 
 bool Application::begin()
 {
-    return true;
+	if (!m_display.begin())
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void Application::update()
 {
+	m_display.update();
 }

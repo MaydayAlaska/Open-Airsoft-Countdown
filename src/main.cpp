@@ -1,30 +1,31 @@
 #include <Arduino.h>
+
 #include "Application.h"
 
 Application app;
 
 void setup()
 {
-    Serial.begin(115200);
+	Serial.begin(115200);
 
-    Serial.println();
-    Serial.println("=================================");
-    Serial.println(" Open Airsoft Countdown - GitHub");
-    Serial.println(" Version 0.1.0");
-    Serial.println("=================================");
+	Serial.println();
+	Serial.println("=========================================");
+	Serial.println(" Open Airsoft Countdown - GitHub");
+	Serial.println(" Version 0.1.0");
+	Serial.println("=========================================");
 
-    if (!app.begin())
-    {
-        Serial.println("Application initialization failed.");
+	if (!app.begin())
+	{
+		Serial.println("Application initialization failed.");
 
-        while (true)
-        {
-            delay(1000);
-        }
-    }
+		while (true)
+		{
+			delay(1000);
+		}
+	}
 }
 
 void loop()
 {
-    app.update();
+	app.update();
 }
