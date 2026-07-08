@@ -16,6 +16,7 @@ public:
 
 	bool isRunning() const;
 	bool isFinished() const;
+	bool consumeSecondTick();
 
 	uint32_t getDuration() const;
 	uint32_t getRemainingSeconds() const;
@@ -30,4 +31,5 @@ private:
 	bool m_running = false;
 	bool m_finished = false;
 	bool m_ledState = false;
+	bool m_secondTick = false;
 };

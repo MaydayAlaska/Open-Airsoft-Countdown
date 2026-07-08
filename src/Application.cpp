@@ -22,6 +22,11 @@ bool Application::begin()
 		return false;
 	}
 
+	if (!m_buzzer.begin())
+	{
+		return false;
+	}
+
 	if (!m_keypad.begin())
 	{
 		return false;
@@ -35,6 +40,8 @@ bool Application::begin()
 void Application::update()
 {
 	m_keypad.update();
+	m_timer.update();
+	m_buzzer.update();
 
 	const char key = m_keypad.getKey();
 
@@ -56,7 +63,6 @@ void Application::update()
 			break;
 	}
 
-	m_timer.update();
 	m_display.update();
 }
 
@@ -143,9 +149,18 @@ void Application::handleRunning()
 {
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
 
+	if (m_timer.consumeSecondTick())
+	{
+		if (remainingSeconds > 0 && remainingSeconds <= 5)
+		{
+			m_buzzer.beep(80);
+		}
+	}
+
 	if (m_timer.isFinished())
 	{
 		m_mode = Mode::Finished;
+		m_buzzer.beep(3000);
 		m_display.showFinished(m_errorCount);
 		return;
 	}

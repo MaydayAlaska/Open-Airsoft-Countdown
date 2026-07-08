@@ -13,6 +13,7 @@ bool Timer::begin()
 	m_running = false;
 	m_finished = false;
 	m_ledState = false;
+	m_secondTick = false;
 
 	Serial.println("Timer initialized.");
 
@@ -21,6 +22,8 @@ bool Timer::begin()
 
 void Timer::update()
 {
+	m_secondTick = false;
+
 	if (!m_running)
 	{
 		return;
@@ -41,6 +44,7 @@ void Timer::update()
 	if (m_remainingSeconds > 0)
 	{
 		m_remainingSeconds--;
+		m_secondTick = true;
 
 		Serial.print("Remaining seconds: ");
 		Serial.println(m_remainingSeconds);
@@ -62,6 +66,7 @@ void Timer::setDuration(uint32_t seconds)
 	m_durationSeconds = seconds;
 	m_remainingSeconds = seconds;
 	m_finished = false;
+	m_secondTick = false;
 	m_ledState = false;
 
 	digitalWrite(StatusLedPin, LOW);
@@ -87,6 +92,7 @@ void Timer::start()
 	m_lastTickMillis = millis();
 	m_running = true;
 	m_finished = false;
+	m_secondTick = false;
 	m_ledState = false;
 
 	digitalWrite(StatusLedPin, LOW);
@@ -97,6 +103,7 @@ void Timer::start()
 void Timer::stop()
 {
 	m_running = false;
+	m_secondTick = false;
 	m_ledState = false;
 
 	digitalWrite(StatusLedPin, LOW);
@@ -108,6 +115,7 @@ void Timer::reset()
 {
 	m_running = false;
 	m_finished = false;
+	m_secondTick = false;
 	m_remainingSeconds = m_durationSeconds;
 	m_ledState = false;
 
@@ -124,6 +132,15 @@ bool Timer::isRunning() const
 bool Timer::isFinished() const
 {
 	return m_finished;
+}
+
+bool Timer::consumeSecondTick()
+{
+	const bool tick = m_secondTick;
+
+	m_secondTick = false;
+
+	return tick;
 }
 
 uint32_t Timer::getDuration() const
