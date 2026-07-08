@@ -7,6 +7,8 @@ struct AppConfig
 	String adminPin;
 	String bleName;
 	bool soundEnabled;
+	bool rfid;
+	bool fingerprint;
 };
 
 class Storage
