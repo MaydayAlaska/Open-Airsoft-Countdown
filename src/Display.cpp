@@ -145,11 +145,24 @@ String Display::formatSeconds(uint32_t seconds) const
 
 	if (hours > 0)
 	{
-		snprintf(buffer, sizeof(buffer), "%02lu:%02lu:%02lu", hours, minutes, remaining);
+		snprintf(
+			buffer,
+			sizeof(buffer),
+			"%02u:%02u:%02u",
+			static_cast<unsigned int>(hours),
+			static_cast<unsigned int>(minutes),
+			static_cast<unsigned int>(remaining)
+		);
 	}
 	else
 	{
-		snprintf(buffer, sizeof(buffer), "%02lu:%02lu", minutes, remaining);
+		snprintf(
+			buffer,
+			sizeof(buffer),
+			"%02u:%02u",
+			static_cast<unsigned int>(minutes),
+			static_cast<unsigned int>(remaining)
+		);
 	}
 
 	return String(buffer);

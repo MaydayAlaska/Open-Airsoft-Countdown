@@ -32,6 +32,11 @@ bool Application::begin()
 		return false;
 	}
 
+	if (!m_nfcReader.begin())
+	{
+		return false;
+	}
+
 	m_display.showAdminPin(0, 0, m_errorCount);
 
 	return true;
@@ -40,8 +45,17 @@ bool Application::begin()
 void Application::update()
 {
 	m_keypad.update();
+	m_nfcReader.update();
 	m_timer.update();
 	m_buzzer.update();
+
+	if (m_nfcReader.hasNewUid())
+	{
+		Serial.print("Last NFC UID received by application: ");
+		Serial.println(m_nfcReader.getLastUid());
+
+		m_nfcReader.clearNewUid();
+	}
 
 	const char key = m_keypad.getKey();
 
