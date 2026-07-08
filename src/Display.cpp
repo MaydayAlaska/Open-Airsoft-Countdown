@@ -24,11 +24,9 @@ bool Display::begin()
 	m_display.clearBuffer();
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
-
 	m_display.drawStr(8, 18, "Open Airsoft");
 	m_display.drawStr(18, 34, "Countdown");
 	m_display.drawStr(38, 56, "v0.1.0");
-
 	m_display.sendBuffer();
 
 	Serial.println("Display initialized.");
