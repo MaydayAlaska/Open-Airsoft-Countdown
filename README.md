@@ -1,12 +1,12 @@
 # Open Airsoft Countdown
 
-[🇬🇧 English](#english)
+[🇬🇧 go to English](#english)
 
 ---
 
 <a id="italiano"></a>
 
-# 🇮🇹 Open Airsoft Countdown
+# 🇮🇹
 
 **Open Airsoft Countdown** è un progetto open source pensato per creare un timer scenico per softair, laser tag, escape room e giochi di ruolo.
 
@@ -76,7 +76,7 @@ Consulta il file `LICENSE` per i dettagli.
 
 <a id="english"></a>
 
-# 🇬🇧 Open Airsoft Countdown
+# 🇬🇧
 
 **Open Airsoft Countdown** is an open-source project designed to create a game prop countdown timer for airsoft, laser tag, escape rooms and role-play scenarios.
 
@@ -86,7 +86,7 @@ The project will also be paired with some **3D printing files**, useful for buil
 
 This project is intended only for entertainment. It is not designed to control real, dangerous, pyrotechnic or explosive devices.
 
-[🇮🇹 Italiano](#italiano)
+[🇮🇹 vai a Italiano](#italiano)
 
 ## Planned features
 
