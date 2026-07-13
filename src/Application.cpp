@@ -277,14 +277,26 @@ void Application::handleRunning(char key)
 			{
 				const uint32_t penaltySeconds = m_storage.getConfig().errorCountdownSeconds;
 
-				Serial.print("Maximum errors reached. Forcing timer to ");
-				Serial.print(penaltySeconds);
-				Serial.println(" seconds.");
+				Serial.println("Maximum errors reached. Disarm locked.");
 
-				m_timer.setRemainingSeconds(penaltySeconds);
+				if (penaltySeconds > 0)
+				{
+					Serial.print("Forcing timer to ");
+					Serial.print(penaltySeconds);
+					Serial.println(" seconds.");
 
-				m_lastDisplayedSeconds = 0xFFFFFFFF;
-				m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount, maxErrorCount);
+					m_timer.setRemainingSeconds(penaltySeconds);
+
+					m_lastDisplayedSeconds = 0xFFFFFFFF;
+					m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount, maxErrorCount);
+				}
+				else
+				{
+					Serial.println("Penalty countdown disabled. Remaining time unchanged.");
+
+					m_lastDisplayedSeconds = remainingSeconds;
+					m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", remainingSeconds, m_errorCount, maxErrorCount);
+				}
 			}
 			else
 			{

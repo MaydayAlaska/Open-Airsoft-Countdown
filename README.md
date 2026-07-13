@@ -34,8 +34,6 @@ Questo progetto è destinato solo all’intrattenimento. Non è pensato per cont
 
 Il dispositivo utilizza un file `config.json` per salvare alcune impostazioni principali.
 
-Il file deve essere un JSON valido, quindi **non deve contenere commenti** con `//`.
-
 Esempio:
 
 ```json
@@ -60,7 +58,7 @@ Significato dei campi:
 | `rfid` | Abilita o disabilita la lettura del tag RFID/NFC |
 | `fingerprint` | Abilita o disabilita la lettura dell’impronta digitale |
 | `maxErrorCount` | Numero massimo di errori consentiti prima del blocco del sistema |
-| `errorCountdownSeconds` | Valore a cui viene portato il countdown dopo il numero massimo di errori |
+| `errorCountdownSeconds` | Valore a cui viene portato il countdown dopo il numero massimo di errori. 0 disattiva la funzione |
 
 ## Stato del progetto
 
@@ -108,8 +106,6 @@ This project is intended only for entertainment. It is not designed to control r
 
 The device uses a `config.json` file to store some main settings.
 
-The file must be valid JSON, so it **must not contain comments** using `//`.
-
 Example:
 
 ```json
@@ -134,7 +130,7 @@ Field meaning:
 | `rfid` | Enables or disables RFID/NFC tag reading |
 | `fingerprint` | Enables or disables fingerprint reading |
 | `maxErrorCount` | Maximum number of allowed errors before the system locks |
-| `errorCountdownSeconds` | Countdown value forced after the maximum number of errors is reached |
+| `errorCountdownSeconds` | Countdown value forced after the maximum number of errors is reached. 0 disables the function|
 
 ## Project status
 
