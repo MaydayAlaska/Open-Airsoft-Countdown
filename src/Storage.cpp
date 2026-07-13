@@ -14,6 +14,7 @@ namespace
 	const bool DefaultSoundEnabled = true;
 	const bool DefaultRfid = true;
 	const bool DefaultFingerprint = false;
+	const uint32_t DefaultMaxErrorCount = 3;
 	const uint32_t DefaultErrorCountdownSeconds = 10;
 }
 
@@ -64,6 +65,8 @@ bool Storage::begin()
 	Serial.println(m_config.rfid ? "yes" : "no");
 	Serial.print("Fingerprint enabled: ");
 	Serial.println(m_config.fingerprint ? "yes" : "no");
+	Serial.print("Max error count: ");
+	Serial.println(m_config.maxErrorCount);
 	Serial.print("Error countdown seconds: ");
 	Serial.println(m_config.errorCountdownSeconds);
 
@@ -91,6 +94,7 @@ bool Storage::saveConfig(const AppConfig &config)
 	document["soundEnabled"] = config.soundEnabled;
 	document["rfid"] = config.rfid;
 	document["fingerprint"] = config.fingerprint;
+	document["maxErrorCount"] = config.maxErrorCount;
 	document["errorCountdownSeconds"] = config.errorCountdownSeconds;
 
 	const size_t bytesWritten = serializeJsonPretty(document, file);
@@ -107,6 +111,41 @@ bool Storage::saveConfig(const AppConfig &config)
 	return true;
 }
 
+void Storage::printFileSystem() const
+{
+	Serial.println();
+	Serial.println("LittleFS files:");
+	Serial.println("--------------------------------");
+
+	File root = LittleFS.open("/");
+
+	if (!root)
+	{
+		Serial.println("Failed to open LittleFS root.");
+		return;
+	}
+
+	File file = root.openNextFile();
+
+	while (file)
+	{
+		Serial.print(file.name());
+		Serial.print(" - ");
+		Serial.print(file.size());
+		Serial.println(" bytes");
+
+		file = root.openNextFile();
+	}
+
+	Serial.println("--------------------------------");
+
+	printFile(ConfigFilePath);
+	printFile(UsersFilePath);
+
+	Serial.println("--------------------------------");
+	Serial.println();
+}
+
 bool Storage::createDefaultConfig()
 {
 	AppConfig defaultConfig;
@@ -116,6 +155,7 @@ bool Storage::createDefaultConfig()
 	defaultConfig.soundEnabled = DefaultSoundEnabled;
 	defaultConfig.rfid = DefaultRfid;
 	defaultConfig.fingerprint = DefaultFingerprint;
+	defaultConfig.maxErrorCount = DefaultMaxErrorCount;
 	defaultConfig.errorCountdownSeconds = DefaultErrorCountdownSeconds;
 
 	return saveConfig(defaultConfig);
@@ -187,6 +227,11 @@ bool Storage::loadConfig()
 		shouldSaveConfig = true;
 	}
 
+	if (!document["maxErrorCount"].is<uint32_t>())
+	{
+		shouldSaveConfig = true;
+	}
+
 	if (!document["errorCountdownSeconds"].is<uint32_t>())
 	{
 		shouldSaveConfig = true;
@@ -200,6 +245,7 @@ bool Storage::loadConfig()
 	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 	m_config.rfid = document["rfid"] | DefaultRfid;
 	m_config.fingerprint = document["fingerprint"] | DefaultFingerprint;
+	m_config.maxErrorCount = document["maxErrorCount"] | DefaultMaxErrorCount;
 	m_config.errorCountdownSeconds = document["errorCountdownSeconds"] | DefaultErrorCountdownSeconds;
 
 	if (!isValidAdminPin(m_config.adminPin))
@@ -211,6 +257,14 @@ bool Storage::loadConfig()
 	if (m_config.bleName.length() == 0)
 	{
 		m_config.bleName = DefaultBleName;
+		shouldSaveConfig = true;
+	}
+
+	const uint32_t sanitizedMaxErrorCount = sanitizeMaxErrorCount(m_config.maxErrorCount);
+
+	if (sanitizedMaxErrorCount != m_config.maxErrorCount)
+	{
+		m_config.maxErrorCount = sanitizedMaxErrorCount;
 		shouldSaveConfig = true;
 	}
 
@@ -248,6 +302,21 @@ bool Storage::isValidAdminPin(const String &pin) const
 	return true;
 }
 
+uint32_t Storage::sanitizeMaxErrorCount(uint32_t count) const
+{
+	if (count < 1)
+	{
+		return DefaultMaxErrorCount;
+	}
+
+	if (count > 10)
+	{
+		return DefaultMaxErrorCount;
+	}
+
+	return count;
+}
+
 uint32_t Storage::sanitizeErrorCountdownSeconds(uint32_t seconds) const
 {
 	if (seconds < 1)
@@ -261,4 +330,29 @@ uint32_t Storage::sanitizeErrorCountdownSeconds(uint32_t seconds) const
 	}
 
 	return seconds;
+}
+
+void Storage::printFile(const char *path) const
+{
+	Serial.print("Content of ");
+	Serial.println(path);
+	Serial.println("--------------------------------");
+
+	File file = LittleFS.open(path, "r");
+
+	if (!file)
+	{
+		Serial.println("File not found.");
+		return;
+	}
+
+	while (file.available())
+	{
+		Serial.write(file.read());
+	}
+
+	file.close();
+
+	Serial.println();
+	Serial.println("--------------------------------");
 }

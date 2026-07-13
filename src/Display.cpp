@@ -39,11 +39,11 @@ void Display::update()
 {
 }
 
-void Display::showAdminPin(uint8_t enteredDigits, uint32_t remainingSeconds, uint8_t errorCount)
+void Display::showAdminPin(uint8_t enteredDigits, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount, true);
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(18, 25, "PIN ADMIN");
@@ -59,11 +59,11 @@ void Display::showAdminPin(uint8_t enteredDigits, uint32_t remainingSeconds, uin
 	m_display.sendBuffer();
 }
 
-void Display::showDisarmPin(uint8_t enteredDigits, uint32_t remainingSeconds, uint8_t errorCount)
+void Display::showDisarmPin(uint8_t enteredDigits, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount, true);
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(16, 25, "PIN DISARMO");
@@ -79,11 +79,11 @@ void Display::showDisarmPin(uint8_t enteredDigits, uint32_t remainingSeconds, ui
 	m_display.sendBuffer();
 }
 
-void Display::showSetTimer(const String &input, uint32_t remainingSeconds, uint8_t errorCount)
+void Display::showSetTimer(const String &input, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount, false);
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, false);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(18, 24, "IMPOSTA TIMER");
@@ -99,11 +99,11 @@ void Display::showSetTimer(const String &input, uint32_t remainingSeconds, uint8
 	m_display.sendBuffer();
 }
 
-void Display::showCountdown(uint32_t remainingSeconds, uint8_t errorCount)
+void Display::showCountdown(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount, false);
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, false);
 
 	const String timeText = formatSeconds(remainingSeconds);
 
@@ -116,11 +116,11 @@ void Display::showCountdown(uint32_t remainingSeconds, uint8_t errorCount)
 	m_display.sendBuffer();
 }
 
-void Display::showMessage(const String &line1, const String &line2, uint32_t remainingSeconds, uint8_t errorCount)
+void Display::showMessage(const String &line1, const String &line2, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount, true);
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(4, 30, line1.c_str());
@@ -129,11 +129,11 @@ void Display::showMessage(const String &line1, const String &line2, uint32_t rem
 	m_display.sendBuffer();
 }
 
-void Display::showFinished(uint8_t errorCount)
+void Display::showFinished(uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(0, errorCount, true);
+	drawHeader(0, errorCount, maxErrorCount, true);
 
 	const char *line1 = "TEMPO SCADUTO";
 	const char *line2 = "PREMI # PER";
@@ -152,7 +152,7 @@ void Display::showFinished(uint8_t errorCount)
 	m_display.sendBuffer();
 }
 
-void Display::drawHeader(uint32_t remainingSeconds, uint8_t errorCount, bool showTime)
+void Display::drawHeader(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount, bool showTime)
 {
 	m_display.setFont(u8g2_font_6x10_tr);
 
@@ -164,13 +164,14 @@ void Display::drawHeader(uint32_t remainingSeconds, uint8_t errorCount, bool sho
 
 	if (errorCount > 0)
 	{
-		char buffer[16];
+		char buffer[20];
 
 		snprintf(
 			buffer,
 			sizeof(buffer),
-			"Errore %u/3",
-			static_cast<unsigned int>(errorCount)
+			"Errore %u/%u",
+			static_cast<unsigned int>(errorCount),
+			static_cast<unsigned int>(maxErrorCount)
 		);
 
 		const int16_t errorX = 128 - m_display.getStrWidth(buffer);

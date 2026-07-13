@@ -7,6 +7,8 @@ bool Application::begin()
 		return false;
 	}
 
+	m_storage.printFileSystem();
+
 	if (!m_users.begin())
 	{
 		return false;
@@ -44,7 +46,7 @@ bool Application::begin()
 		Serial.println("RFID authentication disabled by config.");
 	}
 
-	m_display.showAdminPin(0, 0, m_errorCount);
+	m_display.showAdminPin(0, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 
 	return true;
 }
@@ -95,7 +97,7 @@ void Application::update()
 				m_lastDisplayedSeconds = 0xFFFFFFFF;
 
 				m_mode = Mode::SetTimer;
-				m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+				m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 			}
 			break;
 	}
@@ -117,7 +119,7 @@ void Application::handleAdminPin(char key)
 			m_adminPinInput.remove(m_adminPinInput.length() - 1);
 		}
 
-		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount);
+		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 		return;
 	}
 
@@ -130,12 +132,12 @@ void Application::handleAdminPin(char key)
 
 			m_mode = Mode::SetTimer;
 			m_timerInput = "";
-			m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+			m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 		}
 		else
 		{
 			m_adminPinInput = "";
-			m_display.showMessage("PIN ADMIN", "ERRATO", 0, m_errorCount);
+			m_display.showMessage("PIN ADMIN", "ERRATO", 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 		}
 
 		return;
@@ -144,7 +146,7 @@ void Application::handleAdminPin(char key)
 	if (isDigit(key) && m_adminPinInput.length() < 6)
 	{
 		m_adminPinInput += key;
-		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount);
+		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 	}
 }
 
@@ -162,7 +164,7 @@ void Application::handleSetTimer(char key)
 			m_timerInput.remove(m_timerInput.length() - 1);
 		}
 
-		m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 		return;
 	}
 
@@ -173,7 +175,7 @@ void Application::handleSetTimer(char key)
 		if (duration == 0)
 		{
 			m_timerInput = "";
-			m_display.showMessage("TIMER", "NON VALIDO", 0, m_errorCount);
+			m_display.showMessage("TIMER", "NON VALIDO", 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 			return;
 		}
 
@@ -191,13 +193,14 @@ void Application::handleSetTimer(char key)
 	if (isDigit(key) && m_timerInput.length() < 6)
 	{
 		m_timerInput += key;
-		m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 	}
 }
 
 void Application::handleRunning(char key)
 {
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
 
 	if (m_timer.consumeSecondTick())
 	{
@@ -211,16 +214,16 @@ void Application::handleRunning(char key)
 	{
 		m_mode = Mode::Finished;
 		m_buzzer.beep(3000);
-		m_display.showFinished(m_errorCount);
+		m_display.showFinished(m_errorCount, maxErrorCount);
 		return;
 	}
 
-	if (m_errorCount >= 3)
+	if (m_errorCount >= maxErrorCount)
 	{
 		if (remainingSeconds != m_lastDisplayedSeconds)
 		{
 			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount);
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 		}
 
 		return;
@@ -232,12 +235,12 @@ void Application::handleRunning(char key)
 		{
 			m_disarmPinInput.remove(m_disarmPinInput.length() - 1);
 			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount, maxErrorCount);
 		}
 		else
 		{
 			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount);
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 		}
 
 		return;
@@ -257,7 +260,7 @@ void Application::handleRunning(char key)
 			m_lastDisplayedSeconds = 0xFFFFFFFF;
 
 			m_mode = Mode::SetTimer;
-			m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+			m_display.showSetTimer(m_timerInput, 0, m_errorCount, maxErrorCount);
 		}
 		else
 		{
@@ -265,12 +268,12 @@ void Application::handleRunning(char key)
 
 			m_disarmPinInput = "";
 
-			if (m_errorCount < 3)
+			if (m_errorCount < maxErrorCount)
 			{
 				m_errorCount++;
 			}
 
-			if (m_errorCount >= 3)
+			if (m_errorCount >= maxErrorCount)
 			{
 				const uint32_t penaltySeconds = m_storage.getConfig().errorCountdownSeconds;
 
@@ -281,12 +284,12 @@ void Application::handleRunning(char key)
 				m_timer.setRemainingSeconds(penaltySeconds);
 
 				m_lastDisplayedSeconds = 0xFFFFFFFF;
-				m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount);
+				m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount, maxErrorCount);
 			}
 			else
 			{
 				m_lastDisplayedSeconds = remainingSeconds;
-				m_display.showMessage("PIN DISARMO", "ERRATO", remainingSeconds, m_errorCount);
+				m_display.showMessage("PIN DISARMO", "ERRATO", remainingSeconds, m_errorCount, maxErrorCount);
 			}
 		}
 
@@ -297,7 +300,7 @@ void Application::handleRunning(char key)
 	{
 		m_disarmPinInput += key;
 		m_lastDisplayedSeconds = remainingSeconds;
-		m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+		m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount, maxErrorCount);
 		return;
 	}
 
@@ -306,7 +309,7 @@ void Application::handleRunning(char key)
 		if (remainingSeconds != m_lastDisplayedSeconds)
 		{
 			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount, maxErrorCount);
 		}
 
 		return;
@@ -315,7 +318,7 @@ void Application::handleRunning(char key)
 	if (remainingSeconds != m_lastDisplayedSeconds)
 	{
 		m_lastDisplayedSeconds = remainingSeconds;
-		m_display.showCountdown(remainingSeconds, m_errorCount);
+		m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 	}
 }
 

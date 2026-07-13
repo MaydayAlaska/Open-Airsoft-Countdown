@@ -16,7 +16,6 @@ Il progetto sarà abbinato anche ad alcuni file per **stampa 3D**, utili per cos
 
 Questo progetto è destinato solo all’intrattenimento. Non è pensato per controllare dispositivi reali, pericolosi, pirotecnici o esplosivi.
 
-
 ## Funzionalità previste
 
 - Timer countdown per scenari di gioco
@@ -30,6 +29,38 @@ Questo progetto è destinato solo all’intrattenimento. Non è pensato per cont
 - Configurazione salvata sul dispositivo
 - Supporto futuro per controllo da smartphone tramite BLE
 - File di stampa 3D per contenitore e parti sceniche
+
+## Configurazione
+
+Il dispositivo utilizza un file `config.json` per salvare alcune impostazioni principali.
+
+Il file deve essere un JSON valido, quindi **non deve contenere commenti** con `//`.
+
+Esempio:
+
+```json
+{
+  "adminPin": "000000",
+  "bleName": "Open Airsoft Countdown",
+  "soundEnabled": true,
+  "rfid": false,
+  "fingerprint": false,
+  "maxErrorCount": 3,
+  "errorCountdownSeconds": 10
+}
+```
+
+Significato dei campi:
+
+| Campo | Descrizione |
+|---|---|
+| `adminPin` | PIN amministratore richiesto all’avvio |
+| `bleName` | Nome del dispositivo Bluetooth/BLE |
+| `soundEnabled` | Abilita o disabilita il buzzer |
+| `rfid` | Abilita o disabilita la lettura del tag RFID/NFC |
+| `fingerprint` | Abilita o disabilita la lettura dell’impronta digitale |
+| `maxErrorCount` | Numero massimo di errori consentiti prima del blocco del sistema |
+| `errorCountdownSeconds` | Valore a cui viene portato il countdown dopo il numero massimo di errori |
 
 ## Stato del progetto
 
@@ -72,6 +103,38 @@ This project is intended only for entertainment. It is not designed to control r
 - Configuration stored on the device
 - Future smartphone control via BLE
 - 3D printing files for the enclosure and prop parts
+
+## Configuration
+
+The device uses a `config.json` file to store some main settings.
+
+The file must be valid JSON, so it **must not contain comments** using `//`.
+
+Example:
+
+```json
+{
+  "adminPin": "000000",
+  "bleName": "Open Airsoft Countdown",
+  "soundEnabled": true,
+  "rfid": false,
+  "fingerprint": false,
+  "maxErrorCount": 3,
+  "errorCountdownSeconds": 10
+}
+```
+
+Field meaning:
+
+| Field | Description |
+|---|---|
+| `adminPin` | Admin PIN required at startup |
+| `bleName` | Bluetooth/BLE device name |
+| `soundEnabled` | Enables or disables the buzzer |
+| `rfid` | Enables or disables RFID/NFC tag reading |
+| `fingerprint` | Enables or disables fingerprint reading |
+| `maxErrorCount` | Maximum number of allowed errors before the system locks |
+| `errorCountdownSeconds` | Countdown value forced after the maximum number of errors is reached |
 
 ## Project status
 
