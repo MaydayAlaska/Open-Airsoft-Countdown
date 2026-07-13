@@ -204,7 +204,7 @@ void Application::handleRunning(char key)
 
 	if (m_timer.consumeSecondTick())
 	{
-		if (remainingSeconds > 0 && remainingSeconds <= 5)
+		if (remainingSeconds > 0 && remainingSeconds <= 5 && m_storage.getConfig().soundEnabled)
 		{
 			m_buzzer.beep(80);
 		}
@@ -213,7 +213,12 @@ void Application::handleRunning(char key)
 	if (m_timer.isFinished())
 	{
 		m_mode = Mode::Finished;
-		m_buzzer.beep(3000);
+
+		if (m_storage.getConfig().soundEnabled)
+		{
+			m_buzzer.beep(3000);
+		}
+
 		m_display.showFinished(m_errorCount, maxErrorCount);
 		return;
 	}
