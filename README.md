@@ -1,9 +1,5 @@
 # Open Airsoft Countdown
 
-[🇬🇧 go to English](#english)
-
----
-
 <a id="italiano"></a>
 
 # 🇮🇹
@@ -15,6 +11,8 @@ Lo scopo è realizzare un dispositivo da usare come oggetto di gioco: un countdo
 Il progetto sarà abbinato anche ad alcuni file per **stampa 3D**, utili per costruire il contenitore e le parti esterne del dispositivo.
 
 Questo progetto è destinato solo all’intrattenimento. Non è pensato per controllare dispositivi reali, pericolosi, pirotecnici o esplosivi.
+
+[🇬🇧 go to English](#english)
 
 ## Funzionalità previste
 
