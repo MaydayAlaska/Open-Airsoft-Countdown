@@ -1,86 +1,353 @@
-# Open Airsoft Countdown
+#include "Storage.h"
 
-[🇬🇧 English](#english)
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <LittleFS.h>
 
----
+namespace
+{
+	const char *ConfigFilePath = "/config.json";
+	const char *UsersFilePath = "/users.json";
 
-<a id="italiano"></a>
+	const char *DefaultAdminPin = "000000";
+	const char *DefaultBleName = "Open Airsoft Countdown";
+	const bool DefaultSoundEnabled = true;
+	const bool DefaultRfid = true;
+	const bool DefaultFingerprint = false;
+	const uint32_t DefaultMaxErrorCount = 3;
+	const uint32_t DefaultErrorCountdownSeconds = 10;
+}
 
-# 🇮🇹 Open Airsoft Countdown
+bool Storage::begin()
+{
+	Serial.println("Initializing storage...");
 
-**Open Airsoft Countdown** è un progetto open source pensato per creare un timer scenico per softair, laser tag, escape room e giochi di ruolo.
+	if (!LittleFS.begin(true))
+	{
+		Serial.println("LittleFS initialization failed.");
+		return false;
+	}
 
-Lo scopo è realizzare un dispositivo da usare come oggetto di gioco: un countdown interattivo con display, tastierino, NFC, buzzer e LED di stato.
+	if (!LittleFS.exists(ConfigFilePath))
+	{
+		Serial.println("config.json not found. Creating default config...");
 
-Il progetto sarà abbinato anche ad alcuni file per **stampa 3D**, utili per costruire il contenitore e le parti esterne del dispositivo.
+		if (!createDefaultConfig())
+		{
+			Serial.println("Failed to create config.json.");
+			return false;
+		}
+	}
 
-Questo progetto è destinato solo all’intrattenimento. Non è pensato per controllare dispositivi reali, pericolosi, pirotecnici o esplosivi.
+	if (!LittleFS.exists(UsersFilePath))
+	{
+		Serial.println("users.json not found. Creating default users file...");
 
+		if (!createDefaultUsers())
+		{
+			Serial.println("Failed to create users.json.");
+			return false;
+		}
+	}
 
-## Funzionalità previste
+	if (!loadConfig())
+	{
+		Serial.println("Failed to load config.json.");
+		return false;
+	}
 
-- Timer countdown per scenari di gioco
-- Inserimento del PIN amministratore all’avvio
-- Impostazione del tempo tramite tastierino
-- Display per mostrare stato e tempo rimanente
-- Lettura NFC per identificare i giocatori
-- Autenticazione tramite card NFC + PIN
-- Feedback acustico tramite buzzer
-- LED di stato durante il countdown
-- Configurazione salvata sul dispositivo
-- Supporto futuro per controllo da smartphone tramite BLE
-- File di stampa 3D per contenitore e parti sceniche
+	Serial.println("Storage initialized.");
+	Serial.print("BLE name: ");
+	Serial.println(m_config.bleName);
+	Serial.print("Sound enabled: ");
+	Serial.println(m_config.soundEnabled ? "yes" : "no");
+	Serial.print("RFID enabled: ");
+	Serial.println(m_config.rfid ? "yes" : "no");
+	Serial.print("Fingerprint enabled: ");
+	Serial.println(m_config.fingerprint ? "yes" : "no");
+	Serial.print("Max error count: ");
+	Serial.println(m_config.maxErrorCount);
+	Serial.print("Error countdown seconds: ");
+	Serial.println(m_config.errorCountdownSeconds);
 
-## Stato del progetto
+	return true;
+}
 
-Il progetto è in sviluppo.
+const AppConfig &Storage::getConfig() const
+{
+	return m_config;
+}
 
-La struttura hardware, il pinout, il case e alcune funzioni potranno cambiare prima della prima versione stabile.
+bool Storage::saveConfig(const AppConfig &config)
+{
+	File file = LittleFS.open(ConfigFilePath, "w");
 
-## Licenza
+	if (!file)
+	{
+		return false;
+	}
 
-Questo progetto è distribuito con licenza **GNU Affero General Public License v3.0**.
+	JsonDocument document;
 
-Consulta il file `LICENSE` per i dettagli.
+	document["adminPin"] = config.adminPin;
+	document["bleName"] = config.bleName;
+	document["soundEnabled"] = config.soundEnabled;
+	document["rfid"] = config.rfid;
+	document["fingerprint"] = config.fingerprint;
+	document["maxErrorCount"] = config.maxErrorCount;
+	document["errorCountdownSeconds"] = config.errorCountdownSeconds;
 
----
+	const size_t bytesWritten = serializeJsonPretty(document, file);
 
-<a id="english"></a>
+	file.close();
 
-# 🇬🇧 Open Airsoft Countdown
+	if (bytesWritten == 0)
+	{
+		return false;
+	}
 
-**Open Airsoft Countdown** is an open-source project designed to create a game prop countdown timer for airsoft, laser tag, escape rooms and role-play scenarios.
+	m_config = config;
 
-The goal is to build an interactive game device with a display, keypad, NFC reader, buzzer and status LED.
+	return true;
+}
 
-The project will also be paired with some **3D printing files**, useful for building the enclosure and the external prop parts.
+void Storage::printFileSystem() const
+{
+	Serial.println();
+	Serial.println("LittleFS files:");
+	Serial.println("--------------------------------");
 
-This project is intended only for entertainment. It is not designed to control real, dangerous, pyrotechnic or explosive devices.
+	File root = LittleFS.open("/");
 
-[🇮🇹 Italiano](#italiano)
+	if (!root)
+	{
+		Serial.println("Failed to open LittleFS root.");
+		return;
+	}
 
-## Planned features
+	File file = root.openNextFile();
 
-- Countdown timer for game scenarios
-- Admin PIN at startup
-- Timer setup using a keypad
-- Display for status and remaining time
-- NFC reader for player identification
-- Authentication using NFC card + PIN
-- Buzzer feedback
-- Status LED during countdown
-- Configuration stored on the device
-- Future smartphone control via BLE
-- 3D printing files for the enclosure and prop parts
+	while (file)
+	{
+		Serial.print(file.name());
+		Serial.print(" - ");
+		Serial.print(file.size());
+		Serial.println(" bytes");
 
-## Project status
+		file = root.openNextFile();
+	}
 
-The project is under development.
+	Serial.println("--------------------------------");
 
-The hardware structure, pinout, enclosure and some features may change before the first stable release.
+	printFile(ConfigFilePath);
+	printFile(UsersFilePath);
 
-## License
+	Serial.println("--------------------------------");
+	Serial.println();
+}
 
-This project is licensed under the **GNU Affero General Public License v3.0**.
+bool Storage::createDefaultConfig()
+{
+	AppConfig defaultConfig;
 
-See the `LICENSE` file for details.
+	defaultConfig.adminPin = DefaultAdminPin;
+	defaultConfig.bleName = DefaultBleName;
+	defaultConfig.soundEnabled = DefaultSoundEnabled;
+	defaultConfig.rfid = DefaultRfid;
+	defaultConfig.fingerprint = DefaultFingerprint;
+	defaultConfig.maxErrorCount = DefaultMaxErrorCount;
+	defaultConfig.errorCountdownSeconds = DefaultErrorCountdownSeconds;
+
+	return saveConfig(defaultConfig);
+}
+
+bool Storage::createDefaultUsers()
+{
+	File file = LittleFS.open(UsersFilePath, "w");
+
+	if (!file)
+	{
+		return false;
+	}
+
+	JsonDocument document;
+	document.to<JsonArray>();
+
+	const size_t bytesWritten = serializeJsonPretty(document, file);
+
+	file.close();
+
+	return bytesWritten > 0;
+}
+
+bool Storage::loadConfig()
+{
+	File file = LittleFS.open(ConfigFilePath, "r");
+
+	if (!file)
+	{
+		return false;
+	}
+
+	JsonDocument document;
+	DeserializationError error = deserializeJson(document, file);
+
+	file.close();
+
+	if (error)
+	{
+		Serial.println("config.json is invalid. Recreating default config...");
+		return createDefaultConfig();
+	}
+
+	bool shouldSaveConfig = false;
+
+	if (!document["adminPin"].is<const char *>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["bleName"].is<const char *>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["soundEnabled"].is<bool>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["rfid"].is<bool>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["fingerprint"].is<bool>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["maxErrorCount"].is<uint32_t>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	if (!document["errorCountdownSeconds"].is<uint32_t>())
+	{
+		shouldSaveConfig = true;
+	}
+
+	const char *adminPin = document["adminPin"] | DefaultAdminPin;
+	const char *bleName = document["bleName"] | DefaultBleName;
+
+	m_config.adminPin = adminPin;
+	m_config.bleName = bleName;
+	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
+	m_config.rfid = document["rfid"] | DefaultRfid;
+	m_config.fingerprint = document["fingerprint"] | DefaultFingerprint;
+	m_config.maxErrorCount = document["maxErrorCount"] | DefaultMaxErrorCount;
+	m_config.errorCountdownSeconds = document["errorCountdownSeconds"] | DefaultErrorCountdownSeconds;
+
+	if (!isValidAdminPin(m_config.adminPin))
+	{
+		m_config.adminPin = DefaultAdminPin;
+		shouldSaveConfig = true;
+	}
+
+	if (m_config.bleName.length() == 0)
+	{
+		m_config.bleName = DefaultBleName;
+		shouldSaveConfig = true;
+	}
+
+	const uint32_t sanitizedMaxErrorCount = sanitizeMaxErrorCount(m_config.maxErrorCount);
+
+	if (sanitizedMaxErrorCount != m_config.maxErrorCount)
+	{
+		m_config.maxErrorCount = sanitizedMaxErrorCount;
+		shouldSaveConfig = true;
+	}
+
+	const uint32_t sanitizedErrorCountdownSeconds = sanitizeErrorCountdownSeconds(m_config.errorCountdownSeconds);
+
+	if (sanitizedErrorCountdownSeconds != m_config.errorCountdownSeconds)
+	{
+		m_config.errorCountdownSeconds = sanitizedErrorCountdownSeconds;
+		shouldSaveConfig = true;
+	}
+
+	if (shouldSaveConfig)
+	{
+		saveConfig(m_config);
+	}
+
+	return true;
+}
+
+bool Storage::isValidAdminPin(const String &pin) const
+{
+	if (pin.length() != 6)
+	{
+		return false;
+	}
+
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		if (pin[i] < '0' || pin[i] > '9')
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+uint32_t Storage::sanitizeMaxErrorCount(uint32_t count) const
+{
+	if (count < 1)
+	{
+		return DefaultMaxErrorCount;
+	}
+
+	if (count > 10)
+	{
+		return DefaultMaxErrorCount;
+	}
+
+	return count;
+}
+
+uint32_t Storage::sanitizeErrorCountdownSeconds(uint32_t seconds) const
+{
+	if (seconds > 3600)
+	{
+		return DefaultErrorCountdownSeconds;
+	}
+
+	return seconds;
+}
+
+void Storage::printFile(const char *path) const
+{
+	Serial.print("Content of ");
+	Serial.println(path);
+	Serial.println("--------------------------------");
+
+	File file = LittleFS.open(path, "r");
+
+	if (!file)
+	{
+		Serial.println("File not found.");
+		return;
+	}
+
+	while (file.available())
+	{
+		Serial.write(file.read());
+	}
+
+	file.close();
+
+	Serial.println();
+	Serial.println("--------------------------------");
+}
