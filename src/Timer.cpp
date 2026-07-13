@@ -76,6 +76,29 @@ void Timer::setDuration(uint32_t seconds)
 	Serial.println(" seconds.");
 }
 
+void Timer::setRemainingSeconds(uint32_t seconds)
+{
+	m_remainingSeconds = seconds;
+	m_finished = false;
+	m_secondTick = false;
+	m_lastTickMillis = millis();
+
+	if (seconds == 0)
+	{
+		m_running = false;
+		m_finished = true;
+		digitalWrite(StatusLedPin, HIGH);
+		return;
+	}
+
+	if (m_running)
+	{
+		Serial.print("Timer remaining seconds forced to ");
+		Serial.print(seconds);
+		Serial.println(" seconds.");
+	}
+}
+
 void Timer::start()
 {
 	if (m_remainingSeconds == 0)

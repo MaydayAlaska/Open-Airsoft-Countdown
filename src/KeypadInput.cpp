@@ -1,47 +1,69 @@
 #include "KeypadInput.h"
 
-#include <Wire.h>
+#include <Keypad.h>
 
 namespace
 {
-	const char KeyMap[4][4] =
+	constexpr byte RowCount = 4;
+	constexpr byte ColumnCount = 4;
+
+	char KeyMap[RowCount][ColumnCount] =
 	{
 		{ '1', '2', '3', 'A' },
 		{ '4', '5', '6', 'B' },
 		{ '7', '8', '9', 'C' },
 		{ '*', '0', '#', 'D' }
 	};
+
+	byte RowPins[RowCount] =
+	{
+		18,
+		17,
+		16,
+		15
+	};
+
+	byte ColumnPins[ColumnCount] =
+	{
+		7,
+		6,
+		5,
+		4
+	};
+
+	Keypad MatrixKeypad = Keypad(
+		makeKeymap(KeyMap),
+		RowPins,
+		ColumnPins,
+		RowCount,
+		ColumnCount
+	);
 }
 
 bool KeypadInput::begin()
 {
-	Serial.println("Initializing I2C keypad...");
-
-	Wire.begin(I2cSdaPin, I2cSclPin);
-
-	writePcf8574(0xFF);
-
-	Serial.println("I2C keypad initialized.");
+	Serial.println("Initializing matrix keypad...");
+	Serial.println("Matrix keypad initialized.");
+	Serial.println("Keypad pin mapping:");
+	Serial.println("Rows: R1=GPIO18, R2=GPIO17, R3=GPIO16, R4=GPIO15");
+	Serial.println("Cols: C1=GPIO7, C2=GPIO6, C3=GPIO5, C4=GPIO4");
 
 	return true;
 }
 
 void KeypadInput::update()
 {
-	const char key = scanKey();
+	const char key = MatrixKeypad.getKey();
 
-	if (key != '\0' && m_lastKey == '\0')
+	if (key == NO_KEY)
 	{
-		const uint32_t currentMillis = millis();
-
-		if (currentMillis - m_lastPressMillis >= DebounceMillis)
-		{
-			m_pendingKey = key;
-			m_lastPressMillis = currentMillis;
-		}
+		return;
 	}
 
-	m_lastKey = key;
+	m_pendingKey = key;
+
+	Serial.print("Key pressed: ");
+	Serial.println(key);
 }
 
 char KeypadInput::getKey()
@@ -51,52 +73,4 @@ char KeypadInput::getKey()
 	m_pendingKey = '\0';
 
 	return key;
-}
-
-char KeypadInput::scanKey()
-{
-	for (uint8_t row = 0; row < 4; row++)
-	{
-		uint8_t output = 0xFF;
-		output &= ~(1 << row);
-
-		writePcf8574(output);
-		delayMicroseconds(100);
-
-		const uint8_t input = readPcf8574();
-
-		for (uint8_t col = 0; col < 4; col++)
-		{
-			const uint8_t colBit = 4 + col;
-
-			if ((input & (1 << colBit)) == 0)
-			{
-				writePcf8574(0xFF);
-				return KeyMap[row][col];
-			}
-		}
-	}
-
-	writePcf8574(0xFF);
-
-	return '\0';
-}
-
-void KeypadInput::writePcf8574(uint8_t value)
-{
-	Wire.beginTransmission(I2cAddress);
-	Wire.write(value);
-	Wire.endTransmission();
-}
-
-uint8_t KeypadInput::readPcf8574()
-{
-	Wire.requestFrom(I2cAddress, static_cast<uint8_t>(1));
-
-	if (Wire.available() == 0)
-	{
-		return 0xFF;
-	}
-
-	return Wire.read();
 }

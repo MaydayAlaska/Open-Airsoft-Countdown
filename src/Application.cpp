@@ -82,10 +82,21 @@ void Application::update()
 			break;
 
 		case Mode::Running:
-			handleRunning();
+			handleRunning(key);
 			break;
 
 		case Mode::Finished:
+			if (key == '#')
+			{
+				m_timer.reset();
+				m_timerInput = "";
+				m_disarmPinInput = "";
+				m_errorCount = 0;
+				m_lastDisplayedSeconds = 0xFFFFFFFF;
+
+				m_mode = Mode::SetTimer;
+				m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+			}
 			break;
 	}
 
@@ -101,8 +112,12 @@ void Application::handleAdminPin(char key)
 
 	if (key == '*')
 	{
-		m_adminPinInput = "";
-		m_display.showAdminPin(0, 0, m_errorCount);
+		if (m_adminPinInput.length() > 0)
+		{
+			m_adminPinInput.remove(m_adminPinInput.length() - 1);
+		}
+
+		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount);
 		return;
 	}
 
@@ -110,6 +125,9 @@ void Application::handleAdminPin(char key)
 	{
 		if (m_adminPinInput == m_storage.getConfig().adminPin)
 		{
+			m_adminPinInput = "";
+			m_errorCount = 0;
+
 			m_mode = Mode::SetTimer;
 			m_timerInput = "";
 			m_display.showSetTimer(m_timerInput, 0, m_errorCount);
@@ -139,7 +157,11 @@ void Application::handleSetTimer(char key)
 
 	if (key == '*')
 	{
-		m_timerInput = "";
+		if (m_timerInput.length() > 0)
+		{
+			m_timerInput.remove(m_timerInput.length() - 1);
+		}
+
 		m_display.showSetTimer(m_timerInput, 0, m_errorCount);
 		return;
 	}
@@ -158,6 +180,8 @@ void Application::handleSetTimer(char key)
 		m_timer.setDuration(duration);
 		m_timer.start();
 
+		m_disarmPinInput = "";
+		m_errorCount = 0;
 		m_lastDisplayedSeconds = 0xFFFFFFFF;
 		m_mode = Mode::Running;
 
@@ -171,7 +195,7 @@ void Application::handleSetTimer(char key)
 	}
 }
 
-void Application::handleRunning()
+void Application::handleRunning(char key)
 {
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
 
@@ -188,6 +212,103 @@ void Application::handleRunning()
 		m_mode = Mode::Finished;
 		m_buzzer.beep(3000);
 		m_display.showFinished(m_errorCount);
+		return;
+	}
+
+	if (m_errorCount >= 3)
+	{
+		if (remainingSeconds != m_lastDisplayedSeconds)
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount);
+		}
+
+		return;
+	}
+
+	if (key == '*')
+	{
+		if (m_disarmPinInput.length() > 0)
+		{
+			m_disarmPinInput.remove(m_disarmPinInput.length() - 1);
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+		}
+		else
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount);
+		}
+
+		return;
+	}
+
+	if (key == '#')
+	{
+		if (m_disarmPinInput == m_storage.getConfig().adminPin)
+		{
+			Serial.println("Timer disarmed.");
+
+			m_timer.stop();
+
+			m_timerInput = "";
+			m_disarmPinInput = "";
+			m_errorCount = 0;
+			m_lastDisplayedSeconds = 0xFFFFFFFF;
+
+			m_mode = Mode::SetTimer;
+			m_display.showSetTimer(m_timerInput, 0, m_errorCount);
+		}
+		else
+		{
+			Serial.println("Wrong disarm PIN.");
+
+			m_disarmPinInput = "";
+
+			if (m_errorCount < 3)
+			{
+				m_errorCount++;
+			}
+
+			if (m_errorCount >= 3)
+			{
+				const uint32_t penaltySeconds = m_storage.getConfig().errorCountdownSeconds;
+
+				Serial.print("Maximum errors reached. Forcing timer to ");
+				Serial.print(penaltySeconds);
+				Serial.println(" seconds.");
+
+				m_timer.setRemainingSeconds(penaltySeconds);
+
+				m_lastDisplayedSeconds = 0xFFFFFFFF;
+				m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount);
+			}
+			else
+			{
+				m_lastDisplayedSeconds = remainingSeconds;
+				m_display.showMessage("PIN DISARMO", "ERRATO", remainingSeconds, m_errorCount);
+			}
+		}
+
+		return;
+	}
+
+	if (isDigit(key) && m_disarmPinInput.length() < 6)
+	{
+		m_disarmPinInput += key;
+		m_lastDisplayedSeconds = remainingSeconds;
+		m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+		return;
+	}
+
+	if (m_disarmPinInput.length() > 0)
+	{
+		if (remainingSeconds != m_lastDisplayedSeconds)
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount);
+		}
+
 		return;
 	}
 
@@ -222,4 +343,28 @@ uint32_t Application::parseTimerInput() const
 	return static_cast<uint32_t>(hours) * 3600UL +
 		static_cast<uint32_t>(minutes) * 60UL +
 		static_cast<uint32_t>(seconds);
+}
+
+String Application::formatDisarmPinMask() const
+{
+	String mask;
+
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		if (i < m_disarmPinInput.length())
+		{
+			mask += "*";
+		}
+		else
+		{
+			mask += "_";
+		}
+
+		if (i < 5)
+		{
+			mask += " ";
+		}
+	}
+
+	return mask;
 }

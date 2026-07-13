@@ -9,6 +9,7 @@ public:
 	void update();
 
 	void setDuration(uint32_t seconds);
+	void setRemainingSeconds(uint32_t seconds);
 
 	void start();
 	void stop();

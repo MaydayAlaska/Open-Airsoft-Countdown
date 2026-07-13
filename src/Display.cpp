@@ -43,15 +43,38 @@ void Display::showAdminPin(uint8_t enteredDigits, uint32_t remainingSeconds, uin
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount);
+	drawHeader(remainingSeconds, errorCount, true);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
-	m_display.drawStr(18, 28, "PIN ADMIN");
+	m_display.drawStr(18, 25, "PIN ADMIN");
 
 	const String mask = formatPinMask(enteredDigits);
 
 	m_display.setFont(u8g2_font_ncenB14_tr);
-	m_display.drawStr(18, 54, mask.c_str());
+	m_display.drawStr(18, 48, mask.c_str());
+
+	m_display.setFont(u8g2_font_5x8_tr);
+	m_display.drawStr(8, 63, "# conferma  * cancella");
+
+	m_display.sendBuffer();
+}
+
+void Display::showDisarmPin(uint8_t enteredDigits, uint32_t remainingSeconds, uint8_t errorCount)
+{
+	m_display.clearBuffer();
+
+	drawHeader(remainingSeconds, errorCount, true);
+
+	m_display.setFont(u8g2_font_ncenB08_tr);
+	m_display.drawStr(16, 25, "PIN DISARMO");
+
+	const String mask = formatPinMask(enteredDigits);
+
+	m_display.setFont(u8g2_font_ncenB14_tr);
+	m_display.drawStr(18, 48, mask.c_str());
+
+	m_display.setFont(u8g2_font_5x8_tr);
+	m_display.drawStr(8, 63, "# conferma  * cancella");
 
 	m_display.sendBuffer();
 }
@@ -60,7 +83,7 @@ void Display::showSetTimer(const String &input, uint32_t remainingSeconds, uint8
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount);
+	drawHeader(remainingSeconds, errorCount, false);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(18, 24, "IMPOSTA TIMER");
@@ -80,12 +103,15 @@ void Display::showCountdown(uint32_t remainingSeconds, uint8_t errorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount);
+	drawHeader(remainingSeconds, errorCount, false);
 
 	const String timeText = formatSeconds(remainingSeconds);
 
 	m_display.setFont(u8g2_font_ncenB18_tr);
-	m_display.drawStr(16, 45, timeText.c_str());
+
+	const int16_t timeX = (128 - m_display.getStrWidth(timeText.c_str())) / 2;
+
+	m_display.drawStr(timeX, 45, timeText.c_str());
 
 	m_display.sendBuffer();
 }
@@ -94,7 +120,7 @@ void Display::showMessage(const String &line1, const String &line2, uint32_t rem
 {
 	m_display.clearBuffer();
 
-	drawHeader(remainingSeconds, errorCount);
+	drawHeader(remainingSeconds, errorCount, true);
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	m_display.drawStr(4, 30, line1.c_str());
@@ -107,29 +133,49 @@ void Display::showFinished(uint8_t errorCount)
 {
 	m_display.clearBuffer();
 
-	drawHeader(0, errorCount);
+	drawHeader(0, errorCount, true);
 
-	m_display.setFont(u8g2_font_ncenB10_tr);
-	m_display.drawStr(12, 34, "TEMPO SCADUTO");
+	const char *line1 = "TEMPO SCADUTO";
+	const char *line2 = "PREMI # PER";
+	const char *line3 = "NUOVO TIMER";
 
-	m_display.setFont(u8g2_font_ncenB14_tr);
-	m_display.drawStr(34, 58, "00:00");
+	m_display.setFont(u8g2_font_6x10_tr);
+
+	const int16_t line1X = (128 - m_display.getStrWidth(line1)) / 2;
+	const int16_t line2X = (128 - m_display.getStrWidth(line2)) / 2;
+	const int16_t line3X = (128 - m_display.getStrWidth(line3)) / 2;
+
+	m_display.drawStr(line1X, 28, line1);
+	m_display.drawStr(line2X, 44, line2);
+	m_display.drawStr(line3X, 60, line3);
 
 	m_display.sendBuffer();
 }
 
-void Display::drawHeader(uint32_t remainingSeconds, uint8_t errorCount)
+void Display::drawHeader(uint32_t remainingSeconds, uint8_t errorCount, bool showTime)
 {
-	const String timeText = "T " + formatSeconds(remainingSeconds);
-
 	m_display.setFont(u8g2_font_6x10_tr);
-	m_display.drawStr(0, 9, timeText.c_str());
+
+	if (showTime)
+	{
+		const String timeText = "T " + formatSeconds(remainingSeconds);
+		m_display.drawStr(0, 9, timeText.c_str());
+	}
 
 	if (errorCount > 0)
 	{
-		char buffer[8];
-		snprintf(buffer, sizeof(buffer), "E %u/3", errorCount);
-		m_display.drawStr(94, 9, buffer);
+		char buffer[16];
+
+		snprintf(
+			buffer,
+			sizeof(buffer),
+			"Errore %u/3",
+			static_cast<unsigned int>(errorCount)
+		);
+
+		const int16_t errorX = 128 - m_display.getStrWidth(buffer);
+
+		m_display.drawStr(errorX, 9, buffer);
 	}
 
 	m_display.drawLine(0, 12, 127, 12);
@@ -141,7 +187,7 @@ String Display::formatSeconds(uint32_t seconds) const
 	const uint32_t minutes = (seconds % 3600) / 60;
 	const uint32_t remaining = seconds % 60;
 
-	char buffer[12];
+	char buffer[16];
 
 	if (hours > 0)
 	{

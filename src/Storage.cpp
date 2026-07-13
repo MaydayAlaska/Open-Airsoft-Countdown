@@ -14,6 +14,7 @@ namespace
 	const bool DefaultSoundEnabled = true;
 	const bool DefaultRfid = true;
 	const bool DefaultFingerprint = false;
+	const uint32_t DefaultErrorCountdownSeconds = 10;
 }
 
 bool Storage::begin()
@@ -63,6 +64,8 @@ bool Storage::begin()
 	Serial.println(m_config.rfid ? "yes" : "no");
 	Serial.print("Fingerprint enabled: ");
 	Serial.println(m_config.fingerprint ? "yes" : "no");
+	Serial.print("Error countdown seconds: ");
+	Serial.println(m_config.errorCountdownSeconds);
 
 	return true;
 }
@@ -88,6 +91,7 @@ bool Storage::saveConfig(const AppConfig &config)
 	document["soundEnabled"] = config.soundEnabled;
 	document["rfid"] = config.rfid;
 	document["fingerprint"] = config.fingerprint;
+	document["errorCountdownSeconds"] = config.errorCountdownSeconds;
 
 	const size_t bytesWritten = serializeJsonPretty(document, file);
 
@@ -112,6 +116,7 @@ bool Storage::createDefaultConfig()
 	defaultConfig.soundEnabled = DefaultSoundEnabled;
 	defaultConfig.rfid = DefaultRfid;
 	defaultConfig.fingerprint = DefaultFingerprint;
+	defaultConfig.errorCountdownSeconds = DefaultErrorCountdownSeconds;
 
 	return saveConfig(defaultConfig);
 }
@@ -182,6 +187,11 @@ bool Storage::loadConfig()
 		shouldSaveConfig = true;
 	}
 
+	if (!document["errorCountdownSeconds"].is<uint32_t>())
+	{
+		shouldSaveConfig = true;
+	}
+
 	const char *adminPin = document["adminPin"] | DefaultAdminPin;
 	const char *bleName = document["bleName"] | DefaultBleName;
 
@@ -190,6 +200,7 @@ bool Storage::loadConfig()
 	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 	m_config.rfid = document["rfid"] | DefaultRfid;
 	m_config.fingerprint = document["fingerprint"] | DefaultFingerprint;
+	m_config.errorCountdownSeconds = document["errorCountdownSeconds"] | DefaultErrorCountdownSeconds;
 
 	if (!isValidAdminPin(m_config.adminPin))
 	{
@@ -200,6 +211,14 @@ bool Storage::loadConfig()
 	if (m_config.bleName.length() == 0)
 	{
 		m_config.bleName = DefaultBleName;
+		shouldSaveConfig = true;
+	}
+
+	const uint32_t sanitizedErrorCountdownSeconds = sanitizeErrorCountdownSeconds(m_config.errorCountdownSeconds);
+
+	if (sanitizedErrorCountdownSeconds != m_config.errorCountdownSeconds)
+	{
+		m_config.errorCountdownSeconds = sanitizedErrorCountdownSeconds;
 		shouldSaveConfig = true;
 	}
 
@@ -227,4 +246,19 @@ bool Storage::isValidAdminPin(const String &pin) const
 	}
 
 	return true;
+}
+
+uint32_t Storage::sanitizeErrorCountdownSeconds(uint32_t seconds) const
+{
+	if (seconds < 1)
+	{
+		return DefaultErrorCountdownSeconds;
+	}
+
+	if (seconds > 3600)
+	{
+		return DefaultErrorCountdownSeconds;
+	}
+
+	return seconds;
 }

@@ -9,6 +9,7 @@ struct AppConfig
 	bool soundEnabled;
 	bool rfid;
 	bool fingerprint;
+	uint32_t errorCountdownSeconds;
 };
 
 class Storage
@@ -25,6 +26,7 @@ private:
 	bool loadConfig();
 
 	bool isValidAdminPin(const String &pin) const;
+	uint32_t sanitizeErrorCountdownSeconds(uint32_t seconds) const;
 
 	AppConfig m_config;
 };
