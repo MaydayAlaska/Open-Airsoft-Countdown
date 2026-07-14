@@ -41,6 +41,29 @@ uint8_t Users::count() const
 	return total;
 }
 
+bool Users::getUserByPosition(uint8_t position, UserRecord &user) const
+{
+	uint8_t currentPosition = 0;
+
+	for (uint8_t i = 0; i < MaxUsers; i++)
+	{
+		if (!m_users[i].occupied)
+		{
+			continue;
+		}
+
+		if (currentPosition == position)
+		{
+			user = m_users[i];
+			return true;
+		}
+
+		currentPosition++;
+	}
+
+	return false;
+}
+
 bool Users::authenticate(const String &uid, const String &pin) const
 {
 	const int index = findIndexByUid(uid);
@@ -55,15 +78,21 @@ bool Users::authenticate(const String &uid, const String &pin) const
 
 bool Users::addUser(const String &name, const String &uid, const String &pin)
 {
-	if (!isValidPin(pin))
+	if (!isValidName(name))
 	{
-		Serial.println("Invalid PIN. It must contain exactly 6 digits.");
+		Serial.println("Invalid user name.");
 		return false;
 	}
 
-	if (uid.length() == 0)
+	if (!isValidUid(uid))
 	{
 		Serial.println("Invalid UID.");
+		return false;
+	}
+
+	if (!isValidPin(pin))
+	{
+		Serial.println("Invalid PIN. It must contain exactly 6 digits.");
 		return false;
 	}
 
@@ -81,13 +110,27 @@ bool Users::addUser(const String &name, const String &uid, const String &pin)
 		return false;
 	}
 
+	const uint16_t id = findFreeId();
+
+	if (id == 0)
+	{
+		Serial.println("No free user ID available.");
+		return false;
+	}
+
 	m_users[slot].occupied = true;
-	m_users[slot].id = findFreeId();
+	m_users[slot].id = id;
 	m_users[slot].name = name;
 	m_users[slot].uid = uid;
 	m_users[slot].pin = pin;
 
-	return save();
+	if (!save())
+	{
+		m_users[slot] = UserRecord();
+		return false;
+	}
+
+	return true;
 }
 
 bool Users::removeUser(uint16_t id)
@@ -99,9 +142,16 @@ bool Users::removeUser(uint16_t id)
 		return false;
 	}
 
+	const UserRecord previousUser = m_users[index];
 	m_users[index] = UserRecord();
 
-	return save();
+	if (!save())
+	{
+		m_users[index] = previousUser;
+		return false;
+	}
+
+	return true;
 }
 
 bool Users::load()
@@ -149,7 +199,7 @@ bool Users::load()
 		const char *uid = item["uid"] | "";
 		const char *pin = item["pin"] | "";
 
-		if (id == 0 || uid[0] == '\0' || !isValidPin(pin))
+		if (id == 0 || !isValidName(name) || !isValidUid(uid) || !isValidPin(pin))
 		{
 			continue;
 		}
@@ -221,6 +271,33 @@ bool Users::isValidPin(const String &pin) const
 	for (uint8_t i = 0; i < PinLength; i++)
 	{
 		if (pin[i] < '0' || pin[i] > '9')
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Users::isValidName(const String &name) const
+{
+	return name.length() > 0 && name.length() <= MaxNameLength;
+}
+
+bool Users::isValidUid(const String &uid) const
+{
+	if (uid.length() == 0 || uid.length() > MaxUidLength)
+	{
+		return false;
+	}
+
+	for (uint8_t i = 0; i < uid.length(); i++)
+	{
+		const char character = uid[i];
+		const bool isNumber = character >= '0' && character <= '9';
+		const bool isUpperHex = character >= 'A' && character <= 'F';
+
+		if (!isNumber && !isUpperHex)
 		{
 			return false;
 		}

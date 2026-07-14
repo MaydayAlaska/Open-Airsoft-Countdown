@@ -17,6 +17,7 @@ public:
 	bool begin();
 
 	uint8_t count() const;
+	bool getUserByPosition(uint8_t position, UserRecord &user) const;
 
 	bool authenticate(const String &uid, const String &pin) const;
 
@@ -26,6 +27,8 @@ public:
 private:
 	static constexpr uint8_t MaxUsers = 100;
 	static constexpr uint8_t PinLength = 6;
+	static constexpr uint8_t MaxNameLength = 32;
+	static constexpr uint8_t MaxUidLength = 32;
 
 	bool load();
 	bool save() const;
@@ -33,6 +36,8 @@ private:
 	void clear();
 
 	bool isValidPin(const String &pin) const;
+	bool isValidName(const String &name) const;
+	bool isValidUid(const String &uid) const;
 
 	int findFreeSlot() const;
 	int findIndexById(uint16_t id) const;

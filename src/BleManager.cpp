@@ -5,6 +5,7 @@
 namespace
 {
 	constexpr uint16_t PreferredMtu = 185;
+	constexpr uint16_t CharacteristicMaxLength = 256;
 
 	BleManager *ActiveBleManager = nullptr;
 
@@ -26,6 +27,11 @@ namespace
 
 			Serial.print("BLE client disconnected: ");
 			Serial.println(connInfo.getAddress().toString().c_str());
+
+			if (ActiveBleManager != nullptr)
+			{
+				ActiveBleManager->notifyDisconnectedFromCallback();
+			}
 
 			NimBLEDevice::startAdvertising();
 			Serial.println("BLE advertising restarted.");
@@ -93,7 +99,7 @@ bool BleManager::begin(const String &deviceName)
 	m_commandCharacteristic = service->createCharacteristic(
 		CommandCharacteristicUuid,
 		NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR,
-		128
+		CharacteristicMaxLength
 	);
 
 	if (m_commandCharacteristic == nullptr)
@@ -107,7 +113,7 @@ bool BleManager::begin(const String &deviceName)
 	m_responseCharacteristic = service->createCharacteristic(
 		ResponseCharacteristicUuid,
 		NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY,
-		128
+		CharacteristicMaxLength
 	);
 
 	if (m_responseCharacteristic == nullptr)
@@ -170,6 +176,13 @@ void BleManager::sendResponse(const String &response)
 	);
 }
 
+bool BleManager::consumeDisconnected()
+{
+	const bool disconnected = m_disconnected;
+	m_disconnected = false;
+	return disconnected;
+}
+
 void BleManager::receiveCommandFromCallback(const String &command)
 {
 	if (command.length() == 0)
@@ -182,4 +195,11 @@ void BleManager::receiveCommandFromCallback(const String &command)
 
 	Serial.print("BLE command received: ");
 	Serial.println(command);
+}
+
+void BleManager::notifyDisconnectedFromCallback()
+{
+	m_disconnected = true;
+	m_pendingCommand = "";
+	m_hasPendingCommand = false;
 }

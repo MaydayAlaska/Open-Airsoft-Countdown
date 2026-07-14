@@ -33,6 +33,17 @@ private:
 	void handleBleCommand(const String &command);
 	void sendBleStatus();
 	void sendBleStatusIfChanged();
+	void sendBleConfig();
+	void sendBleUsers();
+
+	bool applyBleConfig(const String &body);
+	bool addBleUser(const String &body);
+	String getCommandValue(const String &body, const String &key) const;
+	bool parseBooleanValue(const String &value, bool &result) const;
+	bool isUnsignedNumber(const String &value) const;
+	bool isValidPin(const String &pin) const;
+	bool isValidProtocolText(const String &value, uint8_t maxLength) const;
+	bool isHexString(const String &value) const;
 
 	bool isDigit(char key) const;
 	uint32_t parseTimerInput() const;

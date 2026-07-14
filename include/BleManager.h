@@ -13,7 +13,10 @@ public:
 	bool getCommand(String &command);
 	void sendResponse(const String &response);
 
+	bool consumeDisconnected();
+
 	void receiveCommandFromCallback(const String &command);
+	void notifyDisconnectedFromCallback();
 
 private:
 	static constexpr const char *ServiceUuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
@@ -26,4 +29,5 @@ private:
 
 	String m_pendingCommand;
 	bool m_hasPendingCommand = false;
+	bool m_disconnected = false;
 };
