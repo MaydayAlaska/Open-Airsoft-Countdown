@@ -23,7 +23,7 @@ public:
 	uint32_t getRemainingSeconds() const;
 
 private:
-	static constexpr uint8_t StatusLedPin = 2;
+	static constexpr uint8_t StatusLedPin = 14;
 
 	uint32_t m_durationSeconds = 0;
 	uint32_t m_remainingSeconds = 0;

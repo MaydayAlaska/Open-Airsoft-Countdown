@@ -1,17 +1,17 @@
 #include "NfcReader.h"
 
-#include <Wire.h>
-
 NfcReader::NfcReader() :
-	m_pn532(Pn532IrqPin, Pn532ResetPin, &Wire)
+	m_wire(1),
+	m_pn532(Pn532IrqPin, Pn532ResetPin, &m_wire)
 {
 }
 
 bool NfcReader::begin()
 {
 	Serial.println("Initializing PN532 NFC reader...");
+	Serial.println("PN532 I2C pins: SDA=GPIO1, SCL=GPIO2");
 
-	Wire.begin(I2cSdaPin, I2cSclPin);
+	m_wire.begin(I2cSdaPin, I2cSclPin);
 
 	m_pn532.begin();
 
@@ -90,16 +90,20 @@ void NfcReader::clearNewUid()
 
 String NfcReader::uidToString(const uint8_t *uid, uint8_t uidLength) const
 {
-	const char hexChars[] = "0123456789ABCDEF";
-
 	String result;
 	result.reserve(uidLength * 2);
 
 	for (uint8_t i = 0; i < uidLength; i++)
 	{
-		result += hexChars[(uid[i] >> 4) & 0x0F];
-		result += hexChars[uid[i] & 0x0F];
+		if (uid[i] < 0x10)
+		{
+			result += '0';
+		}
+
+		result += String(uid[i], HEX);
 	}
+
+	result.toUpperCase();
 
 	return result;
 }

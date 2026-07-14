@@ -1,39 +1,9 @@
-# PlatformIO
 .pio/
-.pioenvs/
-.piolibdeps/
-.pioinit
-platformio_override.ini
-
-# Build outputs
-*.bin
-*.elf
-*.hex
-*.map
-*.lst
-
-# VS Code / PlatformIO IDE
-.vscode/
-
-# OS files
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+.idea/
+*.iml
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-
-# Python cache
-__pycache__/
-*.pyc
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-
-# C/C++ tooling cache
-.cache/
-compile_commands.json

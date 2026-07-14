@@ -12,8 +12,8 @@ Timer scenico open source basato su ESP32-S3 per softair, laser tag, escape room
 
 Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape rooms, and objective-based games.
 
-**Documentazione aggiornata al firmware v1.7**  
-**Documentation updated for firmware v1.7**
+**Documentazione aggiornata al firmware v1.8**  
+**Documentation updated for firmware v1.8**
 
 [Italiano](#italiano) · [English](#english)
 
@@ -58,6 +58,14 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 - applicazione Android dedicata;
 - migrazione automatica dei vecchi `config.json` con campi mancanti.
 
+## Novità firmware v1.8
+
+- bus I²C dell’OLED e del PN532 separati;
+- OLED invariato su SDA GPIO8 e SCL GPIO9;
+- PN532 su SDA GPIO1 e SCL GPIO2;
+- LED di stato spostato da GPIO2 a GPIO14 per evitare il conflitto con SCL;
+- PN532 inizializzato sul secondo controller I²C dell’ESP32-S3 tramite `TwoWire(1)`.
+
 ## Hardware
 
 | Componente | Modello / tipo |
@@ -75,8 +83,10 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 
 | Funzione | GPIO |
 |---|---:|
-| I²C SDA — OLED e PN532 | 8 |
-| I²C SCL — OLED e PN532 | 9 |
+| OLED I²C SDA | 8 |
+| OLED I²C SCL | 9 |
+| PN532 I²C SDA | 1 |
+| PN532 I²C SCL | 2 |
 | PN532 IRQ | 10 |
 | PN532 RESET | 11 |
 | Tastierino R1 | 18 |
@@ -88,9 +98,9 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 | Tastierino C3 | 5 |
 | Tastierino C4 | 4 |
 | Buzzer attivo | 21 |
-| LED di stato | 2 |
+| LED di stato | 14 |
 
-OLED e PN532 condividono il bus I²C su GPIO 8 e GPIO 9.
+OLED e PN532 utilizzano due bus I²C separati. L’OLED resta su GPIO 8/9, mentre il PN532 usa GPIO 1/2 tramite il controller `TwoWire(1)`.
 
 ## Flusso di utilizzo
 
@@ -427,6 +437,14 @@ It is intended for:
 - dedicated Android application;
 - automatic migration of older `config.json` files with missing fields.
 
+## Firmware v1.8 changes
+
+- separate I²C buses for the OLED and PN532;
+- OLED unchanged on SDA GPIO8 and SCL GPIO9;
+- PN532 moved to SDA GPIO1 and SCL GPIO2;
+- status LED moved from GPIO2 to GPIO14 to avoid the SCL conflict;
+- PN532 initialized on the ESP32-S3 secondary I²C controller through `TwoWire(1)`.
+
 ## Hardware
 
 | Component | Model / type |
@@ -444,8 +462,10 @@ It is intended for:
 
 | Function | GPIO |
 |---|---:|
-| I²C SDA — OLED and PN532 | 8 |
-| I²C SCL — OLED and PN532 | 9 |
+| OLED I²C SDA | 8 |
+| OLED I²C SCL | 9 |
+| PN532 I²C SDA | 1 |
+| PN532 I²C SCL | 2 |
 | PN532 IRQ | 10 |
 | PN532 RESET | 11 |
 | Keypad R1 | 18 |
@@ -457,9 +477,9 @@ It is intended for:
 | Keypad C3 | 5 |
 | Keypad C4 | 4 |
 | Active buzzer | 21 |
-| Status LED | 2 |
+| Status LED | 14 |
 
-The OLED and PN532 share the I²C bus on GPIO 8 and GPIO 9.
+The OLED and PN532 now use separate I²C buses. The OLED remains on GPIO 8/9, while the PN532 uses GPIO 1/2 through the `TwoWire(1)` controller.
 
 ## Operating flow
 

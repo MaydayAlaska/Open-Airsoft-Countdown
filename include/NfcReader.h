@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_PN532.h>
+#include <Wire.h>
 
 class NfcReader
 {
@@ -16,8 +17,8 @@ public:
 	void clearNewUid();
 
 private:
-	static constexpr uint8_t I2cSdaPin = 8;
-	static constexpr uint8_t I2cSclPin = 9;
+	static constexpr uint8_t I2cSdaPin = 1;
+	static constexpr uint8_t I2cSclPin = 2;
 	static constexpr uint8_t Pn532IrqPin = 10;
 	static constexpr uint8_t Pn532ResetPin = 11;
 
@@ -26,6 +27,7 @@ private:
 
 	String uidToString(const uint8_t *uid, uint8_t uidLength) const;
 
+	TwoWire m_wire;
 	Adafruit_PN532 m_pn532;
 
 	bool m_available = false;

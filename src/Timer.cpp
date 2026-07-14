@@ -3,6 +3,7 @@
 bool Timer::begin()
 {
 	Serial.println("Initializing timer...");
+	Serial.println("Status LED pin: GPIO14");
 
 	pinMode(StatusLedPin, OUTPUT);
 	digitalWrite(StatusLedPin, LOW);

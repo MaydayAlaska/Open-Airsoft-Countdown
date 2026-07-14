@@ -1,8 +1,11 @@
 {
-  "adminPin": "000000",
-  "bleName": "Open Airsoft Countdown", 
-  "soundEnabled": true, 
-  "rfid": false, 
-  "fingerprint": false, 
-  "maxErrorCount": 3, 
-  "errorCountdownSeconds": 10
+	"adminPin": "000000",
+	"bleName": "Open Airsoft Countdown",
+	"language": "it",
+	"authorizedUserIds": "1",
+	"soundEnabled": true,
+	"rfid": false,
+	"fingerprint": false,
+	"maxErrorCount": 3,
+	"errorCountdownSeconds": 10
+}
