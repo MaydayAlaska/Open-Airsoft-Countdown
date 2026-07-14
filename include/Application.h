@@ -30,6 +30,10 @@ private:
 	void handleRunning(char key);
 	void handleStopped(char key);
 
+	void showPinErrorMessage(uint32_t remainingSeconds);
+	void updatePinErrorMessage();
+	void restoreDisplayAfterPinError();
+
 	void handleBleCommand(const String &command);
 	void sendBleStatus();
 	void sendBleStatusIfChanged();
@@ -38,6 +42,7 @@ private:
 
 	bool applyBleConfig(const String &body);
 	bool addBleUser(const String &body);
+	bool updateBleUser(const String &body);
 	String getCommandValue(const String &body, const String &key) const;
 	bool parseBooleanValue(const String &value, bool &result) const;
 	bool isUnsignedNumber(const String &value) const;
@@ -68,6 +73,9 @@ private:
 	uint8_t m_errorCount = 0;
 
 	bool m_bleLoggedIn = false;
+
+	bool m_pinErrorMessageActive = false;
+	uint32_t m_pinErrorMessageStartedAt = 0;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
 

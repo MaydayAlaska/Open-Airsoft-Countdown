@@ -129,6 +129,23 @@ void Display::showMessage(const String &line1, const String &line2, uint32_t rem
 	m_display.sendBuffer();
 }
 
+void Display::showPinError(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
+{
+	m_display.clearBuffer();
+
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
+
+	const char *message = "PIN ERRATO";
+
+	m_display.setFont(u8g2_font_ncenB14_tr);
+
+	const int16_t messageX = (128 - m_display.getStrWidth(message)) / 2;
+
+	m_display.drawStr(messageX, 43, message);
+
+	m_display.sendBuffer();
+}
+
 void Display::showFinished(uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();

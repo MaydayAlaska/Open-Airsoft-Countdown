@@ -22,6 +22,7 @@ public:
 	bool authenticate(const String &uid, const String &pin) const;
 
 	bool addUser(const String &name, const String &uid, const String &pin);
+	bool updateUser(uint16_t id, const String &name, const String &uid, const String &pin);
 	bool removeUser(uint16_t id);
 
 private:

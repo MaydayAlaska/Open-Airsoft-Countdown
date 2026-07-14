@@ -1,5 +1,11 @@
 #include "Application.h"
 
+namespace
+{
+	constexpr uint32_t StartupScreenDurationMs = 3000;
+	constexpr uint32_t PinErrorMessageDurationMs = 1500;
+}
+
 bool Application::begin()
 {
 	if (!m_storage.begin())
@@ -18,6 +24,8 @@ bool Application::begin()
 	{
 		return false;
 	}
+
+	delay(StartupScreenDurationMs);
 
 	if (!m_timer.begin())
 	{
@@ -87,39 +95,46 @@ void Application::update()
 
 	const char key = m_keypad.getKey();
 
-	switch (m_mode)
+	if (m_pinErrorMessageActive)
 	{
-		case Mode::EnterAdminPin:
-			handleAdminPin(key);
-			break;
+		updatePinErrorMessage();
+	}
+	else
+	{
+		switch (m_mode)
+		{
+			case Mode::EnterAdminPin:
+				handleAdminPin(key);
+				break;
 
-		case Mode::SetTimer:
-			handleSetTimer(key);
-			break;
+			case Mode::SetTimer:
+				handleSetTimer(key);
+				break;
 
-		case Mode::Running:
-			handleRunning(key);
-			break;
+			case Mode::Running:
+				handleRunning(key);
+				break;
 
-		case Mode::Stopped:
-			handleStopped(key);
-			break;
+			case Mode::Stopped:
+				handleStopped(key);
+				break;
 
-		case Mode::Finished:
-			if (key == '#')
-			{
-				m_timer.reset();
-				m_timerInput = "";
-				m_disarmPinInput = "";
-				m_errorCount = 0;
-				m_lastDisplayedSeconds = 0xFFFFFFFF;
+			case Mode::Finished:
+				if (key == '#')
+				{
+					m_timer.reset();
+					m_timerInput = "";
+					m_disarmPinInput = "";
+					m_errorCount = 0;
+					m_lastDisplayedSeconds = 0xFFFFFFFF;
 
-				m_mode = Mode::SetTimer;
-				m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+					m_mode = Mode::SetTimer;
+					m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 
-				sendBleStatus();
-			}
-			break;
+					sendBleStatus();
+				}
+				break;
+		}
 	}
 
 	String bleCommand;
@@ -168,7 +183,7 @@ void Application::handleAdminPin(char key)
 		else
 		{
 			m_adminPinInput = "";
-			m_display.showMessage("PIN ADMIN", "ERRATO", 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+			showPinErrorMessage(0);
 		}
 
 		return;
@@ -333,14 +348,14 @@ void Application::handleRunning(char key)
 					m_timer.setRemainingSeconds(penaltySeconds);
 
 					m_lastDisplayedSeconds = 0xFFFFFFFF;
-					m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", penaltySeconds, m_errorCount, maxErrorCount);
+					m_display.showMessage("TROPPI ERRORI", "ALLARME", penaltySeconds, m_errorCount, maxErrorCount);
 				}
 				else
 				{
 					Serial.println("Penalty countdown disabled. Remaining time unchanged.");
 
 					m_lastDisplayedSeconds = remainingSeconds;
-					m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", remainingSeconds, m_errorCount, maxErrorCount);
+					m_display.showMessage("TROPPI ERRORI", "ALLARME", remainingSeconds, m_errorCount, maxErrorCount);
 				}
 
 				sendBleStatus();
@@ -348,7 +363,7 @@ void Application::handleRunning(char key)
 			else
 			{
 				m_lastDisplayedSeconds = remainingSeconds;
-				m_display.showMessage("PIN DISARMO", "ERRATO", remainingSeconds, m_errorCount, maxErrorCount);
+				showPinErrorMessage(remainingSeconds);
 
 				sendBleStatus();
 			}
@@ -394,6 +409,65 @@ void Application::handleStopped(char key)
 	{
 		m_lastDisplayedSeconds = remainingSeconds;
 		m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+	}
+}
+
+void Application::showPinErrorMessage(uint32_t remainingSeconds)
+{
+	m_pinErrorMessageActive = true;
+	m_pinErrorMessageStartedAt = millis();
+
+	m_display.showPinError(
+		remainingSeconds,
+		m_errorCount,
+		m_storage.getConfig().maxErrorCount
+	);
+}
+
+void Application::updatePinErrorMessage()
+{
+	if (!m_pinErrorMessageActive)
+	{
+		return;
+	}
+
+	if (millis() - m_pinErrorMessageStartedAt < PinErrorMessageDurationMs)
+	{
+		return;
+	}
+
+	m_pinErrorMessageActive = false;
+	restoreDisplayAfterPinError();
+}
+
+void Application::restoreDisplayAfterPinError()
+{
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+
+	switch (m_mode)
+	{
+		case Mode::EnterAdminPin:
+			m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::SetTimer:
+			m_display.showSetTimer(m_timerInput, remainingSeconds, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::Running:
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::Stopped:
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::Finished:
+			m_display.showFinished(m_errorCount, maxErrorCount);
+			break;
 	}
 }
 
@@ -497,6 +571,22 @@ void Application::handleBleCommand(const String &command)
 		}
 
 		m_bleManager.sendResponse("OK:USER_ADDED");
+		delay(20);
+		sendBleUsers();
+		return;
+	}
+
+	if (upperCommand.startsWith("UPDATEUSER:"))
+	{
+		const String body = cleanCommand.substring(11);
+
+		if (!updateBleUser(body))
+		{
+			m_bleManager.sendResponse("ERR:UPDATE_USER");
+			return;
+		}
+
+		m_bleManager.sendResponse("OK:USER_UPDATED");
 		delay(20);
 		sendBleUsers();
 		return;
@@ -817,6 +907,35 @@ bool Application::addBleUser(const String &body)
 	}
 
 	return m_users.addUser(name, uid, pin);
+}
+
+bool Application::updateBleUser(const String &body)
+{
+	const String idText = getCommandValue(body, "id");
+	const String name = getCommandValue(body, "name");
+	String uid = getCommandValue(body, "uid");
+	const String pin = getCommandValue(body, "pin");
+
+	uid.toUpperCase();
+
+	if (!isUnsignedNumber(idText))
+	{
+		return false;
+	}
+
+	const uint32_t id = static_cast<uint32_t>(idText.toInt());
+
+	if (id == 0 || id > 65535)
+	{
+		return false;
+	}
+
+	if (!isValidProtocolText(name, 32) || uid.length() > 32 || !isHexString(uid) || !isValidPin(pin))
+	{
+		return false;
+	}
+
+	return m_users.updateUser(static_cast<uint16_t>(id), name, uid, pin);
 }
 
 String Application::getCommandValue(const String &body, const String &key) const

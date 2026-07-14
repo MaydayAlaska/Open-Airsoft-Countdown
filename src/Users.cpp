@@ -133,6 +133,57 @@ bool Users::addUser(const String &name, const String &uid, const String &pin)
 	return true;
 }
 
+bool Users::updateUser(uint16_t id, const String &name, const String &uid, const String &pin)
+{
+	if (!isValidName(name))
+	{
+		Serial.println("Invalid user name.");
+		return false;
+	}
+
+	if (!isValidUid(uid))
+	{
+		Serial.println("Invalid UID.");
+		return false;
+	}
+
+	if (!isValidPin(pin))
+	{
+		Serial.println("Invalid PIN. It must contain exactly 6 digits.");
+		return false;
+	}
+
+	const int index = findIndexById(id);
+
+	if (index < 0)
+	{
+		Serial.println("User not found.");
+		return false;
+	}
+
+	const int uidIndex = findIndexByUid(uid);
+
+	if (uidIndex >= 0 && uidIndex != index)
+	{
+		Serial.println("UID already exists.");
+		return false;
+	}
+
+	const UserRecord previousUser = m_users[index];
+
+	m_users[index].name = name;
+	m_users[index].uid = uid;
+	m_users[index].pin = pin;
+
+	if (!save())
+	{
+		m_users[index] = previousUser;
+		return false;
+	}
+
+	return true;
+}
+
 bool Users::removeUser(uint16_t id)
 {
 	const int index = findIndexById(id);

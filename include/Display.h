@@ -16,6 +16,7 @@ public:
 	void showSetTimer(const String &input, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showCountdown(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showMessage(const String &line1, const String &line2, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
+	void showPinError(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showFinished(uint8_t errorCount, uint32_t maxErrorCount);
 
 private:
