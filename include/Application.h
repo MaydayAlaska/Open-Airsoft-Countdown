@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BleManager.h"
 #include "Buzzer.h"
 #include "Display.h"
 #include "KeypadInput.h"
@@ -27,9 +28,13 @@ private:
 	void handleSetTimer(char key);
 	void handleRunning(char key);
 
+	void handleBleCommand(const String &command);
+	void sendBleStatus();
+
 	bool isDigit(char key) const;
 	uint32_t parseTimerInput() const;
-	String formatDisarmPinMask() const;
+	uint32_t parseTimerText(const String &input) const;
+	const char *modeToString() const;
 
 	Display m_display;
 	Storage m_storage;
@@ -38,6 +43,7 @@ private:
 	KeypadInput m_keypad;
 	NfcReader m_nfcReader;
 	Buzzer m_buzzer;
+	BleManager m_bleManager;
 
 	Mode m_mode = Mode::EnterAdminPin;
 
@@ -46,6 +52,8 @@ private:
 	String m_disarmPinInput;
 
 	uint8_t m_errorCount = 0;
+
+	bool m_bleLoggedIn = false;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
 };
