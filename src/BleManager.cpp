@@ -4,6 +4,8 @@
 
 namespace
 {
+	constexpr uint16_t PreferredMtu = 185;
+
 	BleManager *ActiveBleManager = nullptr;
 
 	class BleServerCallbacks : public NimBLEServerCallbacks
@@ -64,6 +66,11 @@ bool BleManager::begin(const String &deviceName)
 		Serial.println("BLE initialization failed.");
 		return false;
 	}
+
+	NimBLEDevice::setMTU(PreferredMtu);
+
+	Serial.print("BLE preferred MTU: ");
+	Serial.println(PreferredMtu);
 
 	m_server = NimBLEDevice::createServer();
 

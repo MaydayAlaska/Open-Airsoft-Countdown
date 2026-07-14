@@ -53,6 +53,8 @@ bool Application::begin()
 
 	m_display.showAdminPin(0, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 
+	sendBleStatus();
+
 	return true;
 }
 
@@ -103,6 +105,8 @@ void Application::update()
 
 				m_mode = Mode::SetTimer;
 				m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+
+				sendBleStatus();
 			}
 			break;
 	}
@@ -113,6 +117,8 @@ void Application::update()
 	{
 		handleBleCommand(bleCommand);
 	}
+
+	sendBleStatusIfChanged();
 
 	m_display.update();
 }
@@ -145,6 +151,8 @@ void Application::handleAdminPin(char key)
 			m_mode = Mode::SetTimer;
 			m_timerInput = "";
 			m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+
+			sendBleStatus();
 		}
 		else
 		{
@@ -199,6 +207,8 @@ void Application::handleSetTimer(char key)
 		m_lastDisplayedSeconds = 0xFFFFFFFF;
 		m_mode = Mode::Running;
 
+		sendBleStatus();
+
 		return;
 	}
 
@@ -214,7 +224,9 @@ void Application::handleRunning(char key)
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
 	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
 
-	if (m_timer.consumeSecondTick())
+	const bool secondTick = m_timer.consumeSecondTick();
+
+	if (secondTick)
 	{
 		if (remainingSeconds > 0 && remainingSeconds <= 5 && m_storage.getConfig().soundEnabled)
 		{
@@ -232,6 +244,9 @@ void Application::handleRunning(char key)
 		}
 
 		m_display.showFinished(m_errorCount, maxErrorCount);
+
+		sendBleStatus();
+
 		return;
 	}
 
@@ -278,6 +293,8 @@ void Application::handleRunning(char key)
 
 			m_mode = Mode::SetTimer;
 			m_display.showSetTimer(m_timerInput, 0, m_errorCount, maxErrorCount);
+
+			sendBleStatus();
 		}
 		else
 		{
@@ -314,11 +331,15 @@ void Application::handleRunning(char key)
 					m_lastDisplayedSeconds = remainingSeconds;
 					m_display.showMessage("TROPPI ERRORI", "DISARMO BLOCCATO", remainingSeconds, m_errorCount, maxErrorCount);
 				}
+
+				sendBleStatus();
 			}
 			else
 			{
 				m_lastDisplayedSeconds = remainingSeconds;
 				m_display.showMessage("PIN DISARMO", "ERRATO", remainingSeconds, m_errorCount, maxErrorCount);
+
+				sendBleStatus();
 			}
 		}
 
@@ -381,6 +402,7 @@ void Application::handleBleCommand(const String &command)
 	{
 		m_bleLoggedIn = false;
 		m_bleManager.sendResponse("OK:LOGOUT");
+		sendBleStatus();
 		return;
 	}
 
@@ -393,11 +415,13 @@ void Application::handleBleCommand(const String &command)
 		{
 			m_bleLoggedIn = true;
 			m_bleManager.sendResponse("OK:LOGIN");
+			sendBleStatus();
 		}
 		else
 		{
 			m_bleLoggedIn = false;
 			m_bleManager.sendResponse("ERR:LOGIN");
+			sendBleStatus();
 		}
 
 		return;
@@ -442,6 +466,8 @@ void Application::handleBleCommand(const String &command)
 		response += duration;
 
 		m_bleManager.sendResponse(response);
+		sendBleStatus();
+
 		return;
 	}
 
@@ -467,6 +493,8 @@ void Application::handleBleCommand(const String &command)
 		m_mode = Mode::Running;
 
 		m_bleManager.sendResponse("OK:START");
+		sendBleStatus();
+
 		return;
 	}
 
@@ -483,6 +511,8 @@ void Application::handleBleCommand(const String &command)
 		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 
 		m_bleManager.sendResponse("OK:STOP");
+		sendBleStatus();
+
 		return;
 	}
 
@@ -499,6 +529,8 @@ void Application::handleBleCommand(const String &command)
 		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 
 		m_bleManager.sendResponse("OK:RESET");
+		sendBleStatus();
+
 		return;
 	}
 
@@ -507,22 +539,56 @@ void Application::handleBleCommand(const String &command)
 
 void Application::sendBleStatus()
 {
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t durationSeconds = m_timer.getDuration();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+	const bool locked = m_errorCount >= maxErrorCount;
+
 	String response = "STATUS:";
 	response += modeToString();
 	response += ";remaining=";
-	response += m_timer.getRemainingSeconds();
+	response += remainingSeconds;
 	response += ";duration=";
-	response += m_timer.getDuration();
+	response += durationSeconds;
 	response += ";errors=";
 	response += m_errorCount;
 	response += "/";
-	response += m_storage.getConfig().maxErrorCount;
+	response += maxErrorCount;
 	response += ";locked=";
-	response += (m_errorCount >= m_storage.getConfig().maxErrorCount ? "1" : "0");
+	response += (locked ? "1" : "0");
 	response += ";logged=";
 	response += (m_bleLoggedIn ? "1" : "0");
 
 	m_bleManager.sendResponse(response);
+
+	m_hasLastBleStatus = true;
+	m_lastBleStatusMode = m_mode;
+	m_lastBleStatusRemainingSeconds = remainingSeconds;
+	m_lastBleStatusDurationSeconds = durationSeconds;
+	m_lastBleStatusErrorCount = m_errorCount;
+	m_lastBleStatusMaxErrorCount = maxErrorCount;
+	m_lastBleStatusLocked = locked;
+	m_lastBleStatusLoggedIn = m_bleLoggedIn;
+}
+
+void Application::sendBleStatusIfChanged()
+{
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t durationSeconds = m_timer.getDuration();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+	const bool locked = m_errorCount >= maxErrorCount;
+
+	if (!m_hasLastBleStatus ||
+		m_lastBleStatusMode != m_mode ||
+		m_lastBleStatusRemainingSeconds != remainingSeconds ||
+		m_lastBleStatusDurationSeconds != durationSeconds ||
+		m_lastBleStatusErrorCount != m_errorCount ||
+		m_lastBleStatusMaxErrorCount != maxErrorCount ||
+		m_lastBleStatusLocked != locked ||
+		m_lastBleStatusLoggedIn != m_bleLoggedIn)
+	{
+		sendBleStatus();
+	}
 }
 
 bool Application::isDigit(char key) const

@@ -30,6 +30,7 @@ private:
 
 	void handleBleCommand(const String &command);
 	void sendBleStatus();
+	void sendBleStatusIfChanged();
 
 	bool isDigit(char key) const;
 	uint32_t parseTimerInput() const;
@@ -56,4 +57,13 @@ private:
 	bool m_bleLoggedIn = false;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
+
+	bool m_hasLastBleStatus = false;
+	Mode m_lastBleStatusMode = Mode::EnterAdminPin;
+	uint32_t m_lastBleStatusRemainingSeconds = 0xFFFFFFFF;
+	uint32_t m_lastBleStatusDurationSeconds = 0xFFFFFFFF;
+	uint8_t m_lastBleStatusErrorCount = 0xFF;
+	uint32_t m_lastBleStatusMaxErrorCount = 0xFFFFFFFF;
+	bool m_lastBleStatusLocked = false;
+	bool m_lastBleStatusLoggedIn = false;
 };
