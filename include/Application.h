@@ -21,12 +21,14 @@ private:
 		EnterAdminPin,
 		SetTimer,
 		Running,
+		Stopped,
 		Finished
 	};
 
 	void handleAdminPin(char key);
 	void handleSetTimer(char key);
 	void handleRunning(char key);
+	void handleStopped(char key);
 
 	void handleBleCommand(const String &command);
 	void sendBleStatus();

@@ -94,6 +94,10 @@ void Application::update()
 			handleRunning(key);
 			break;
 
+		case Mode::Stopped:
+			handleStopped(key);
+			break;
+
 		case Mode::Finished:
 			if (key == '#')
 			{
@@ -282,17 +286,17 @@ void Application::handleRunning(char key)
 	{
 		if (m_disarmPinInput == m_storage.getConfig().adminPin)
 		{
-			Serial.println("Timer disarmed.");
+			Serial.println("Timer stopped by keypad.");
 
 			m_timer.stop();
 
 			m_timerInput = "";
 			m_disarmPinInput = "";
 			m_errorCount = 0;
-			m_lastDisplayedSeconds = 0xFFFFFFFF;
 
-			m_mode = Mode::SetTimer;
-			m_display.showSetTimer(m_timerInput, 0, m_errorCount, maxErrorCount);
+			m_mode = Mode::Stopped;
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 
 			sendBleStatus();
 		}
@@ -364,6 +368,20 @@ void Application::handleRunning(char key)
 
 		return;
 	}
+
+	if (remainingSeconds != m_lastDisplayedSeconds)
+	{
+		m_lastDisplayedSeconds = remainingSeconds;
+		m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+	}
+}
+
+void Application::handleStopped(char key)
+{
+	(void)key;
+
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
 
 	if (remainingSeconds != m_lastDisplayedSeconds)
 	{
@@ -500,15 +518,18 @@ void Application::handleBleCommand(const String &command)
 
 	if (upperCommand == "STOP")
 	{
+		const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+		const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+
 		m_timer.stop();
 
 		m_timerInput = "";
 		m_disarmPinInput = "";
 		m_errorCount = 0;
-		m_lastDisplayedSeconds = 0xFFFFFFFF;
 
-		m_mode = Mode::SetTimer;
-		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+		m_mode = Mode::Stopped;
+		m_lastDisplayedSeconds = remainingSeconds;
+		m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 
 		m_bleManager.sendResponse("OK:STOP");
 		sendBleStatus();
@@ -642,6 +663,9 @@ const char *Application::modeToString() const
 
 		case Mode::Running:
 			return "RUNNING";
+
+		case Mode::Stopped:
+			return "STOPPED";
 
 		case Mode::Finished:
 			return "FINISHED";
