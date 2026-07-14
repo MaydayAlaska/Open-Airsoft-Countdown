@@ -34,6 +34,10 @@ private:
 	void updatePinErrorMessage();
 	void restoreDisplayAfterPinError();
 
+	void showMaximumErrorMessage(uint32_t remainingSeconds);
+	void updateMaximumErrorMessage();
+	void restoreDisplayAfterMaximumError();
+
 	void handleBleCommand(const String &command);
 	void sendBleStatus();
 	void sendBleStatusIfChanged();
@@ -48,6 +52,8 @@ private:
 	bool isUnsignedNumber(const String &value) const;
 	bool isValidPin(const String &pin) const;
 	bool isValidProtocolText(const String &value, uint8_t maxLength) const;
+	bool isValidLanguage(const String &language) const;
+	bool isEnglishLanguage() const;
 	bool isHexString(const String &value) const;
 
 	bool isDigit(char key) const;
@@ -76,6 +82,9 @@ private:
 
 	bool m_pinErrorMessageActive = false;
 	uint32_t m_pinErrorMessageStartedAt = 0;
+
+	bool m_maximumErrorMessageActive = false;
+	uint32_t m_maximumErrorMessageStartedAt = 0;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
 

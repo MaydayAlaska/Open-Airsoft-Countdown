@@ -6,6 +6,7 @@ struct AppConfig
 {
 	String adminPin;
 	String bleName;
+	String language;
 	bool soundEnabled;
 	bool rfid;
 	bool fingerprint;
@@ -29,6 +30,7 @@ private:
 	bool loadConfig();
 
 	bool isValidAdminPin(const String &pin) const;
+	String sanitizeLanguage(const String &language) const;
 	uint32_t sanitizeMaxErrorCount(uint32_t count) const;
 	uint32_t sanitizeErrorCountdownSeconds(uint32_t seconds) const;
 

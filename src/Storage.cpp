@@ -11,8 +11,9 @@ namespace
 
 	const char *DefaultAdminPin = "000000";
 	const char *DefaultBleName = "Open Airsoft Countdown";
+	const char *DefaultLanguage = "it";
 	const bool DefaultSoundEnabled = true;
-	const bool DefaultRfid = true;
+	const bool DefaultRfid = false;
 	const bool DefaultFingerprint = false;
 	const uint32_t DefaultMaxErrorCount = 3;
 	const uint32_t DefaultErrorCountdownSeconds = 10;
@@ -59,6 +60,8 @@ bool Storage::begin()
 	Serial.println("Storage initialized.");
 	Serial.print("BLE name: ");
 	Serial.println(m_config.bleName);
+	Serial.print("UI language: ");
+	Serial.println(m_config.language);
 	Serial.print("Sound enabled: ");
 	Serial.println(m_config.soundEnabled ? "yes" : "no");
 	Serial.print("RFID enabled: ");
@@ -80,6 +83,9 @@ const AppConfig &Storage::getConfig() const
 
 bool Storage::saveConfig(const AppConfig &config)
 {
+	AppConfig normalizedConfig = config;
+	normalizedConfig.language = sanitizeLanguage(config.language);
+
 	File file = LittleFS.open(ConfigFilePath, "w");
 
 	if (!file)
@@ -89,13 +95,14 @@ bool Storage::saveConfig(const AppConfig &config)
 
 	JsonDocument document;
 
-	document["adminPin"] = config.adminPin;
-	document["bleName"] = config.bleName;
-	document["soundEnabled"] = config.soundEnabled;
-	document["rfid"] = config.rfid;
-	document["fingerprint"] = config.fingerprint;
-	document["maxErrorCount"] = config.maxErrorCount;
-	document["errorCountdownSeconds"] = config.errorCountdownSeconds;
+	document["adminPin"] = normalizedConfig.adminPin;
+	document["bleName"] = normalizedConfig.bleName;
+	document["language"] = normalizedConfig.language;
+	document["soundEnabled"] = normalizedConfig.soundEnabled;
+	document["rfid"] = normalizedConfig.rfid;
+	document["fingerprint"] = normalizedConfig.fingerprint;
+	document["maxErrorCount"] = normalizedConfig.maxErrorCount;
+	document["errorCountdownSeconds"] = normalizedConfig.errorCountdownSeconds;
 
 	const size_t bytesWritten = serializeJsonPretty(document, file);
 
@@ -106,7 +113,7 @@ bool Storage::saveConfig(const AppConfig &config)
 		return false;
 	}
 
-	m_config = config;
+	m_config = normalizedConfig;
 
 	return true;
 }
@@ -152,6 +159,7 @@ bool Storage::createDefaultConfig()
 
 	defaultConfig.adminPin = DefaultAdminPin;
 	defaultConfig.bleName = DefaultBleName;
+	defaultConfig.language = DefaultLanguage;
 	defaultConfig.soundEnabled = DefaultSoundEnabled;
 	defaultConfig.rfid = DefaultRfid;
 	defaultConfig.fingerprint = DefaultFingerprint;
@@ -212,6 +220,11 @@ bool Storage::loadConfig()
 		shouldSaveConfig = true;
 	}
 
+	if (!document["language"].is<const char *>())
+	{
+		shouldSaveConfig = true;
+	}
+
 	if (!document["soundEnabled"].is<bool>())
 	{
 		shouldSaveConfig = true;
@@ -239,9 +252,11 @@ bool Storage::loadConfig()
 
 	const char *adminPin = document["adminPin"] | DefaultAdminPin;
 	const char *bleName = document["bleName"] | DefaultBleName;
+	const char *language = document["language"] | DefaultLanguage;
 
 	m_config.adminPin = adminPin;
 	m_config.bleName = bleName;
+	m_config.language = language;
 	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 	m_config.rfid = document["rfid"] | DefaultRfid;
 	m_config.fingerprint = document["fingerprint"] | DefaultFingerprint;
@@ -257,6 +272,14 @@ bool Storage::loadConfig()
 	if (m_config.bleName.length() == 0)
 	{
 		m_config.bleName = DefaultBleName;
+		shouldSaveConfig = true;
+	}
+
+	const String sanitizedLanguage = sanitizeLanguage(m_config.language);
+
+	if (sanitizedLanguage != m_config.language)
+	{
+		m_config.language = sanitizedLanguage;
 		shouldSaveConfig = true;
 	}
 
@@ -278,7 +301,7 @@ bool Storage::loadConfig()
 
 	if (shouldSaveConfig)
 	{
-		saveConfig(m_config);
+		return saveConfig(m_config);
 	}
 
 	return true;
@@ -302,14 +325,23 @@ bool Storage::isValidAdminPin(const String &pin) const
 	return true;
 }
 
-uint32_t Storage::sanitizeMaxErrorCount(uint32_t count) const
+String Storage::sanitizeLanguage(const String &language) const
 {
-	if (count < 1)
+	String normalized = language;
+	normalized.trim();
+	normalized.toLowerCase();
+
+	if (normalized == "it" || normalized == "en")
 	{
-		return DefaultMaxErrorCount;
+		return normalized;
 	}
 
-	if (count > 10)
+	return String(DefaultLanguage);
+}
+
+uint32_t Storage::sanitizeMaxErrorCount(uint32_t count) const
+{
+	if (count < 1 || count > 10)
 	{
 		return DefaultMaxErrorCount;
 	}

@@ -4,6 +4,8 @@ namespace
 {
 	constexpr uint32_t StartupScreenDurationMs = 3000;
 	constexpr uint32_t PinErrorMessageDurationMs = 1500;
+	constexpr uint32_t MaximumErrorMessageDurationMs = 2000;
+	constexpr uint32_t MaximumErrorCompensationSeconds = MaximumErrorMessageDurationMs / 1000;
 }
 
 bool Application::begin()
@@ -19,6 +21,8 @@ bool Application::begin()
 	{
 		return false;
 	}
+
+	m_display.setLanguage(m_storage.getConfig().language);
 
 	if (!m_display.begin())
 	{
@@ -98,6 +102,10 @@ void Application::update()
 	if (m_pinErrorMessageActive)
 	{
 		updatePinErrorMessage();
+	}
+	else if (m_maximumErrorMessageActive)
+	{
+		updateMaximumErrorMessage();
 	}
 	else
 	{
@@ -221,7 +229,13 @@ void Application::handleSetTimer(char key)
 		if (duration == 0)
 		{
 			m_timerInput = "";
-			m_display.showMessage("TIMER", "NON VALIDO", 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+			m_display.showMessage(
+				"TIMER",
+				isEnglishLanguage() ? "INVALID" : "NON VALIDO",
+				0,
+				m_errorCount,
+				m_storage.getConfig().maxErrorCount
+			);
 			return;
 		}
 
@@ -336,27 +350,29 @@ void Application::handleRunning(char key)
 			if (m_errorCount >= maxErrorCount)
 			{
 				const uint32_t penaltySeconds = m_storage.getConfig().errorCountdownSeconds;
+				uint32_t displayedRemainingSeconds = remainingSeconds;
 
 				Serial.println("Maximum errors reached. Disarm locked.");
 
 				if (penaltySeconds > 0)
 				{
+					const uint32_t compensatedPenaltySeconds =
+						penaltySeconds + MaximumErrorCompensationSeconds;
+
 					Serial.print("Forcing timer to ");
-					Serial.print(penaltySeconds);
-					Serial.println(" seconds.");
+					Serial.print(compensatedPenaltySeconds);
+					Serial.println(" seconds, including message compensation.");
 
-					m_timer.setRemainingSeconds(penaltySeconds);
-
-					m_lastDisplayedSeconds = 0xFFFFFFFF;
-					m_display.showMessage("TROPPI ERRORI", "ALLARME", penaltySeconds, m_errorCount, maxErrorCount);
+					m_timer.setRemainingSeconds(compensatedPenaltySeconds);
+					displayedRemainingSeconds = compensatedPenaltySeconds;
 				}
 				else
 				{
 					Serial.println("Penalty countdown disabled. Remaining time unchanged.");
-
-					m_lastDisplayedSeconds = remainingSeconds;
-					m_display.showMessage("TROPPI ERRORI", "ALLARME", remainingSeconds, m_errorCount, maxErrorCount);
 				}
+
+				m_lastDisplayedSeconds = 0xFFFFFFFF;
+				showMaximumErrorMessage(displayedRemainingSeconds);
 
 				sendBleStatus();
 			}
@@ -460,6 +476,61 @@ void Application::restoreDisplayAfterPinError()
 			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
 			break;
 
+		case Mode::Stopped:
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::Finished:
+			m_display.showFinished(m_errorCount, maxErrorCount);
+			break;
+	}
+}
+
+void Application::showMaximumErrorMessage(uint32_t remainingSeconds)
+{
+	m_maximumErrorMessageActive = true;
+	m_maximumErrorMessageStartedAt = millis();
+
+	m_display.showMaximumError(
+		remainingSeconds,
+		m_errorCount,
+		m_storage.getConfig().maxErrorCount
+	);
+}
+
+void Application::updateMaximumErrorMessage()
+{
+	if (!m_maximumErrorMessageActive)
+	{
+		return;
+	}
+
+	if (millis() - m_maximumErrorMessageStartedAt < MaximumErrorMessageDurationMs)
+	{
+		return;
+	}
+
+	m_maximumErrorMessageActive = false;
+	restoreDisplayAfterMaximumError();
+}
+
+void Application::restoreDisplayAfterMaximumError()
+{
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+
+	switch (m_mode)
+	{
+		case Mode::EnterAdminPin:
+			m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::SetTimer:
+			m_display.showSetTimer(m_timerInput, remainingSeconds, m_errorCount, maxErrorCount);
+			break;
+
+		case Mode::Running:
 		case Mode::Stopped:
 			m_lastDisplayedSeconds = remainingSeconds;
 			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
@@ -789,11 +860,13 @@ void Application::sendBleConfig()
 	const AppConfig &config = m_storage.getConfig();
 
 	String response;
-	response.reserve(182);
+	response.reserve(198);
 	response = "CONFIG:adminPin=";
 	response += config.adminPin;
 	response += ";bleName=";
 	response += config.bleName;
+	response += ";language=";
+	response += config.language;
 	response += ";soundEnabled=";
 	response += (config.soundEnabled ? "1" : "0");
 	response += ";rfid=";
@@ -846,6 +919,7 @@ bool Application::applyBleConfig(const String &body)
 {
 	const String adminPin = getCommandValue(body, "adminPin");
 	const String bleName = getCommandValue(body, "bleName");
+	String language = getCommandValue(body, "language");
 	const String soundText = getCommandValue(body, "soundEnabled");
 	const String rfidText = getCommandValue(body, "rfid");
 	const String fingerprintText = getCommandValue(body, "fingerprint");
@@ -856,7 +930,15 @@ bool Application::applyBleConfig(const String &body)
 	bool rfid = false;
 	bool fingerprint = false;
 
-	if (!isValidPin(adminPin) || !isValidProtocolText(bleName, 48))
+	if (language.length() == 0)
+	{
+		language = m_storage.getConfig().language;
+	}
+
+	language.trim();
+	language.toLowerCase();
+
+	if (!isValidPin(adminPin) || !isValidProtocolText(bleName, 48) || !isValidLanguage(language))
 	{
 		return false;
 	}
@@ -884,13 +966,21 @@ bool Application::applyBleConfig(const String &body)
 	AppConfig config = m_storage.getConfig();
 	config.adminPin = adminPin;
 	config.bleName = bleName;
+	config.language = language;
 	config.soundEnabled = soundEnabled;
 	config.rfid = rfid;
 	config.fingerprint = fingerprint;
 	config.maxErrorCount = maxErrorCount;
 	config.errorCountdownSeconds = errorCountdownSeconds;
 
-	return m_storage.saveConfig(config);
+	if (!m_storage.saveConfig(config))
+	{
+		return false;
+	}
+
+	m_display.setLanguage(config.language);
+
+	return true;
 }
 
 bool Application::addBleUser(const String &body)
@@ -1026,6 +1116,16 @@ bool Application::isValidProtocolText(const String &value, uint8_t maxLength) co
 	}
 
 	return value.indexOf(';') < 0 && value.indexOf('=') < 0;
+}
+
+bool Application::isValidLanguage(const String &language) const
+{
+	return language == "it" || language == "en";
+}
+
+bool Application::isEnglishLanguage() const
+{
+	return m_storage.getConfig().language == "en";
 }
 
 bool Application::isHexString(const String &value) const
