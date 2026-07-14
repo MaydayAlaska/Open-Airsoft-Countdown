@@ -6,7 +6,7 @@
 	<meta name="theme-color" content="#1d2226">
 	<meta name="description" content="Installer web ufficiale per il firmware Open Airsoft Countdown su ESP32-S3.">
 	<title>Open Airsoft Countdown - Web Installer</title>
-	<link rel="icon" href="icon.svg" type="image/svg+xml">
+	<link rel="icon" href="scuro.svg" type="image/svg+xml">
 	<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 	<style>
 		:root {
@@ -35,6 +35,49 @@
 				radial-gradient(circle at top, rgba(255, 90, 10, 0.18), transparent 34rem),
 				var(--background);
 			color: var(--text);
+		}
+
+		.language-switch {
+			position: fixed;
+			top: 18px;
+			right: 18px;
+			z-index: 10;
+			display: flex;
+			gap: 8px;
+			padding: 6px;
+			border: 1px solid var(--border);
+			border-radius: 999px;
+			background: rgba(29, 34, 38, 0.88);
+			backdrop-filter: blur(12px);
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+		}
+
+		.language-button {
+			width: 40px;
+			height: 40px;
+			border: 1px solid transparent;
+			border-radius: 999px;
+			background: transparent;
+			font-size: 1.35rem;
+			line-height: 1;
+			cursor: pointer;
+			opacity: 0.58;
+			transition:
+				opacity 0.18s ease,
+				background 0.18s ease,
+				border-color 0.18s ease,
+				transform 0.18s ease;
+		}
+
+		.language-button:hover {
+			opacity: 1;
+			transform: translateY(-1px);
+		}
+
+		.language-button.active {
+			opacity: 1;
+			border-color: rgba(255, 90, 10, 0.55);
+			background: rgba(255, 90, 10, 0.16);
 		}
 
 		main {
@@ -175,7 +218,12 @@
 
 		@media (max-width: 520px) {
 			main {
-				padding: 22px 0;
+				padding: 76px 0 22px;
+			}
+
+			.language-switch {
+				top: 12px;
+				right: 12px;
 			}
 
 			.hero,
@@ -192,22 +240,27 @@
 	</style>
 </head>
 <body>
+	<div class="language-switch" aria-label="Language selector">
+		<button class="language-button" type="button" data-language-button="it" aria-label="Italiano">🇮🇹</button>
+		<button class="language-button" type="button" data-language-button="en" aria-label="English">🇬🇧</button>
+	</div>
+
 	<main>
 		<section class="hero">
-			<img class="logo" src="icon.svg" alt="Logo Open Airsoft Countdown">
+			<img class="logo" src="scuro.svg" alt="Open Airsoft Countdown logo">
 			<h1>Open Airsoft Countdown</h1>
-			<p class="subtitle">
+			<p class="subtitle" data-i18n="subtitle">
 				Installa il firmware ufficiale sull’ESP32-S3 direttamente dal browser,
 				senza Visual Studio Code e senza compilare il sorgente.
 			</p>
 
 			<div class="installer">
 				<esp-web-install-button manifest="manifest.json">
-					<button class="install-button" slot="activate">Installa il firmware</button>
-					<span class="unsupported" slot="unsupported">
+					<button class="install-button" slot="activate" data-i18n="installButton">Installa il firmware</button>
+					<span class="unsupported" slot="unsupported" data-i18n="unsupported">
 						Questo browser non supporta l’installazione tramite porta seriale. Usa un browser aggiornato compatibile con Web Serial su un computer.
 					</span>
-					<span class="unsupported" slot="not-allowed">
+					<span class="unsupported" slot="not-allowed" data-i18n="notAllowed">
 						L’installer richiede una connessione HTTPS.
 					</span>
 				</esp-web-install-button>
@@ -215,29 +268,108 @@
 		</section>
 
 		<section class="card">
-			<h2>Come installare</h2>
+			<h2 data-i18n="howToTitle">Come installare</h2>
 			<ol>
-				<li>Collega la scheda <strong>ESP32-S3-DevKitC-1 N8</strong> al computer con un cavo USB dati.</li>
-				<li>Premi <strong>Installa il firmware</strong>.</li>
-				<li>Seleziona la porta seriale dell’ESP32-S3.</li>
-				<li>Conferma l’installazione e attendi il completamento.</li>
-				<li>Al primo avvio usa il PIN amministratore predefinito <strong>000000</strong>.</li>
+				<li data-i18n="step1">Collega la scheda <strong>ESP32-S3-DevKitC-1 N8</strong> al computer con un cavo USB dati.</li>
+				<li data-i18n="step2">Premi <strong>Installa il firmware</strong>.</li>
+				<li data-i18n="step3">Seleziona la porta seriale dell’ESP32-S3.</li>
+				<li data-i18n="step4">Conferma l’installazione e attendi il completamento.</li>
+				<li data-i18n="step5">Al primo avvio usa il PIN amministratore predefinito <strong>000000</strong>.</li>
 			</ol>
 
-			<div class="warning">
+			<div class="warning" data-i18n="warning">
 				Durante un aggiornamento, scegli di mantenere i dati per conservare configurazione e utenti.
 				Esegui invece una cancellazione completa per una nuova installazione pulita.
 			</div>
 
 			<div class="links">
-				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown">Repository firmware</a>
-				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App">App Android</a>
+				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown" data-i18n="firmwareRepo">Repository firmware</a>
+				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App" data-i18n="androidApp">App Android</a>
 			</div>
 		</section>
 
-		<footer>
+		<footer data-i18n="footer">
 			Open Airsoft Countdown · Firmware v1.8 · ESP32-S3
 		</footer>
 	</main>
+
+	<script>
+		const translations = {
+			it: {
+				pageTitle: "Open Airsoft Countdown - Web Installer",
+				metaDescription: "Installer web ufficiale per il firmware Open Airsoft Countdown su ESP32-S3.",
+				subtitle: "Installa il firmware ufficiale sull’ESP32-S3 direttamente dal browser, senza Visual Studio Code e senza compilare il sorgente.",
+				installButton: "Installa il firmware",
+				unsupported: "Questo browser non supporta l’installazione tramite porta seriale. Usa un browser aggiornato compatibile con Web Serial su un computer.",
+				notAllowed: "L’installer richiede una connessione HTTPS.",
+				howToTitle: "Come installare",
+				step1: "Collega la scheda <strong>ESP32-S3-DevKitC-1 N8</strong> al computer con un cavo USB dati.",
+				step2: "Premi <strong>Installa il firmware</strong>.",
+				step3: "Seleziona la porta seriale dell’ESP32-S3.",
+				step4: "Conferma l’installazione e attendi il completamento.",
+				step5: "Al primo avvio usa il PIN amministratore predefinito <strong>000000</strong>.",
+				warning: "Durante un aggiornamento, scegli di mantenere i dati per conservare configurazione e utenti. Esegui invece una cancellazione completa per una nuova installazione pulita.",
+				firmwareRepo: "Repository firmware",
+				androidApp: "App Android",
+				footer: "Open Airsoft Countdown · Firmware v1.8 · ESP32-S3"
+			},
+			en: {
+				pageTitle: "Open Airsoft Countdown - Web Installer",
+				metaDescription: "Official web installer for the Open Airsoft Countdown firmware on ESP32-S3.",
+				subtitle: "Install the official firmware on your ESP32-S3 directly from the browser, without Visual Studio Code and without compiling the source code.",
+				installButton: "Install firmware",
+				unsupported: "This browser does not support installation through the serial port. Use an updated browser compatible with Web Serial on a computer.",
+				notAllowed: "The installer requires an HTTPS connection.",
+				howToTitle: "How to install",
+				step1: "Connect the <strong>ESP32-S3-DevKitC-1 N8</strong> board to your computer using a USB data cable.",
+				step2: "Press <strong>Install firmware</strong>.",
+				step3: "Select the ESP32-S3 serial port.",
+				step4: "Confirm the installation and wait until it is complete.",
+				step5: "On first boot, use the default administrator PIN <strong>000000</strong>.",
+				warning: "During an update, choose to keep existing data to preserve configuration and users. Choose a full erase only for a clean new installation.",
+				firmwareRepo: "Firmware repository",
+				androidApp: "Android app",
+				footer: "Open Airsoft Countdown · Firmware v1.8 · ESP32-S3"
+			}
+		};
+
+		function setLanguage(language) {
+			const selectedLanguage = translations[language] ? language : "it";
+			const dictionary = translations[selectedLanguage];
+
+			document.documentElement.lang = selectedLanguage;
+			document.title = dictionary.pageTitle;
+
+			const metaDescription = document.querySelector('meta[name="description"]');
+			if (metaDescription) {
+				metaDescription.setAttribute("content", dictionary.metaDescription);
+			}
+
+			document.querySelectorAll("[data-i18n]").forEach((element) => {
+				const key = element.getAttribute("data-i18n");
+
+				if (dictionary[key]) {
+					element.innerHTML = dictionary[key];
+				}
+			});
+
+			document.querySelectorAll("[data-language-button]").forEach((button) => {
+				button.classList.toggle("active", button.getAttribute("data-language-button") === selectedLanguage);
+			});
+
+			localStorage.setItem("openAirsoftCountdownLanguage", selectedLanguage);
+		}
+
+		document.querySelectorAll("[data-language-button]").forEach((button) => {
+			button.addEventListener("click", () => {
+				setLanguage(button.getAttribute("data-language-button"));
+			});
+		});
+
+		const savedLanguage = localStorage.getItem("openAirsoftCountdownLanguage");
+		const browserLanguage = navigator.language && navigator.language.toLowerCase().startsWith("en") ? "en" : "it";
+
+		setLanguage(savedLanguage || browserLanguage);
+	</script>
 </body>
 </html>
