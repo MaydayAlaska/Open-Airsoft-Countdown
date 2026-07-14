@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="it">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#1d2226">
+	<meta name="description" content="Installer web ufficiale per il firmware Open Airsoft Countdown su ESP32-S3.">
+	<title>Open Airsoft Countdown - Web Installer</title>
+	<link rel="icon" href="icon.svg" type="image/svg+xml">
+	<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+	<style>
+		:root {
+			color-scheme: dark;
+			font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+			--background: #111417;
+			--surface: #1d2226;
+			--surface-soft: #252b30;
+			--text: #f5f7f8;
+			--muted: #aeb7bd;
+			--accent: #ff5a0a;
+			--border: #343b41;
+			--esp-tools-button-color: #ff5a0a;
+			--esp-tools-button-text-color: #ffffff;
+			--esp-tools-button-border-radius: 14px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			background:
+				radial-gradient(circle at top, rgba(255, 90, 10, 0.18), transparent 34rem),
+				var(--background);
+			color: var(--text);
+		}
+
+		main {
+			width: min(760px, calc(100% - 32px));
+			margin: 0 auto;
+			padding: 48px 0;
+		}
+
+		.hero,
+		.card {
+			background: rgba(29, 34, 38, 0.94);
+			border: 1px solid var(--border);
+			border-radius: 24px;
+			box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+		}
+
+		.hero {
+			padding: 34px;
+			text-align: center;
+		}
+
+		.logo {
+			display: block;
+			width: 132px;
+			height: 132px;
+			margin: 0 auto 22px;
+			border-radius: 28px;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(2rem, 7vw, 3.3rem);
+			line-height: 1.02;
+		}
+
+		.subtitle {
+			max-width: 560px;
+			margin: 18px auto 0;
+			color: var(--muted);
+			font-size: 1.05rem;
+			line-height: 1.6;
+		}
+
+		.installer {
+			margin-top: 28px;
+		}
+
+		esp-web-install-button {
+			display: inline-block;
+		}
+
+		.install-button {
+			border: 0;
+			border-radius: 14px;
+			background: var(--accent);
+			color: white;
+			font: inherit;
+			font-weight: 800;
+			padding: 15px 28px;
+			cursor: pointer;
+			box-shadow: 0 12px 30px rgba(255, 90, 10, 0.28);
+		}
+
+		.unsupported {
+			display: inline-block;
+			max-width: 540px;
+			padding: 14px 18px;
+			border: 1px solid #70401f;
+			border-radius: 14px;
+			background: #332116;
+			color: #ffd5bf;
+			line-height: 1.5;
+		}
+
+		.card {
+			margin-top: 22px;
+			padding: 28px;
+		}
+
+		h2 {
+			margin: 0 0 18px;
+			font-size: 1.25rem;
+		}
+
+		ol {
+			margin: 0;
+			padding-left: 1.35rem;
+			color: var(--muted);
+			line-height: 1.75;
+		}
+
+		strong {
+			color: var(--text);
+		}
+
+		.warning {
+			margin-top: 18px;
+			padding: 16px;
+			border-left: 4px solid var(--accent);
+			border-radius: 10px;
+			background: var(--surface-soft);
+			color: var(--muted);
+			line-height: 1.55;
+		}
+
+		.links {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+			margin-top: 22px;
+		}
+
+		a {
+			color: var(--text);
+			text-decoration: none;
+		}
+
+		.link {
+			flex: 1 1 240px;
+			padding: 14px 16px;
+			border: 1px solid var(--border);
+			border-radius: 14px;
+			background: var(--surface-soft);
+			font-weight: 700;
+			text-align: center;
+		}
+
+		.link:hover {
+			border-color: var(--accent);
+		}
+
+		footer {
+			padding: 24px 8px 0;
+			color: var(--muted);
+			font-size: 0.9rem;
+			text-align: center;
+		}
+
+		@media (max-width: 520px) {
+			main {
+				padding: 22px 0;
+			}
+
+			.hero,
+			.card {
+				border-radius: 18px;
+				padding: 22px;
+			}
+
+			.logo {
+				width: 104px;
+				height: 104px;
+			}
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<section class="hero">
+			<img class="logo" src="icon.svg" alt="Logo Open Airsoft Countdown">
+			<h1>Open Airsoft Countdown</h1>
+			<p class="subtitle">
+				Installa il firmware ufficiale sull’ESP32-S3 direttamente dal browser,
+				senza Visual Studio Code e senza compilare il sorgente.
+			</p>
+
+			<div class="installer">
+				<esp-web-install-button manifest="manifest.json">
+					<button class="install-button" slot="activate">Installa il firmware</button>
+					<span class="unsupported" slot="unsupported">
+						Questo browser non supporta l’installazione tramite porta seriale. Usa un browser aggiornato compatibile con Web Serial su un computer.
+					</span>
+					<span class="unsupported" slot="not-allowed">
+						L’installer richiede una connessione HTTPS.
+					</span>
+				</esp-web-install-button>
+			</div>
+		</section>
+
+		<section class="card">
+			<h2>Come installare</h2>
+			<ol>
+				<li>Collega la scheda <strong>ESP32-S3-DevKitC-1 N8</strong> al computer con un cavo USB dati.</li>
+				<li>Premi <strong>Installa il firmware</strong>.</li>
+				<li>Seleziona la porta seriale dell’ESP32-S3.</li>
+				<li>Conferma l’installazione e attendi il completamento.</li>
+				<li>Al primo avvio usa il PIN amministratore predefinito <strong>000000</strong>.</li>
+			</ol>
+
+			<div class="warning">
+				Durante un aggiornamento, scegli di mantenere i dati per conservare configurazione e utenti.
+				Esegui invece una cancellazione completa per una nuova installazione pulita.
+			</div>
+
+			<div class="links">
+				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown">Repository firmware</a>
+				<a class="link" href="https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App">App Android</a>
+			</div>
+		</section>
+
+		<footer>
+			Open Airsoft Countdown · Firmware v1.8 · ESP32-S3
+		</footer>
+	</main>
+</body>
+</html>

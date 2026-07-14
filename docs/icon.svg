@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1024" height="1024"
+     viewBox="0 0 1024 1024">
+  <title>Open Airsoft Countdown Android icon</title>
+  <rect x="32" y="32" width="960" height="960" rx="210" fill="#1D2226"/>
+  <g shape-rendering="geometricPrecision">
+    <path d="M 290.183 756.353 A 331.500 331.500 0 0 1 494.651 178.954" fill="none" stroke="#FFFFFF" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 827.275 612.439 A 331.500 331.500 0 0 1 326.628 784.826" fill="none" stroke="#FFFFFF" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 529.349 178.954 A 331.500 331.500 0 0 1 608.921 192.985" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 636.182 202.639 A 331.500 331.500 0 0 1 711.502 245.252" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 733.817 263.647 A 331.500 331.500 0 0 1 783.549 319.859" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 799.087 344.250 A 331.500 331.500 0 0 1 823.508 396.620" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 830.658 418.626 A 331.500 331.500 0 0 1 839.419 458.142" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 769.624 718.620 A 331.500 331.500 0 0 1 733.817 756.353" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<path d="M 716.092 771.226 A 331.500 331.500 0 0 1 672.714 799.936" fill="none" stroke="#FF5A0A" stroke-width="54.600" stroke-linecap="butt"/>
+<circle cx="306.600" cy="520.400" r="101.400" fill="none" stroke="#FFFFFF" stroke-width="61.100"/>
+<polygon points="283.200,481.400 283.200,559.400 350.800,520.400" fill="#FF5A0A"/>
+<polygon points="424.900,629.600 499.000,390.400 532.800,390.400 478.200,629.600" fill="#FFFFFF"/>
+<polygon points="532.800,390.400 625.100,629.600 562.700,629.600 514.600,494.400" fill="#FFFFFF"/>
+<polygon points="479.500,545.100 573.100,545.100 593.900,595.800 463.900,595.800" fill="#FFFFFF"/>
+<path d="M 796.090 597.687 A 104.000 104.000 0 1 1 796.090 443.113" fill="none" stroke="#FFFFFF" stroke-width="61.100" stroke-linecap="butt"/>
+  </g>
+</svg>
