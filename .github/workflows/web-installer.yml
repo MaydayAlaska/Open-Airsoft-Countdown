@@ -34,12 +34,13 @@ jobs:
       - name: Build firmware and factory image
         run: pio run -e esp32-s3-devkitc-1
 
+      - name: Check factory firmware
+        run: test -f docs/firmware/open-airsoft-countdown.factory.bin
+
       - name: Prepare GitHub Pages artifact
         run: |
-          mkdir -p _site/firmware
+          mkdir -p _site
           cp -R docs/. _site/
-          cp .pio/build/esp32-s3-devkitc-1/open-airsoft-countdown.factory.bin \
-            _site/firmware/open-airsoft-countdown.factory.bin
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
