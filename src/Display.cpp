@@ -163,6 +163,43 @@ void Display::showMaximumError(uint32_t remainingSeconds, uint8_t errorCount, ui
 	m_display.sendBuffer();
 }
 
+void Display::showUserGreeting(
+	const String &name,
+	uint32_t remainingSeconds,
+	uint8_t errorCount,
+	uint32_t maxErrorCount
+)
+{
+	m_display.clearBuffer();
+
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
+
+	m_display.setFont(u8g2_font_ncenB10_tr);
+	drawCentered(isEnglish() ? "HELLO" : "SALVE", 30);
+
+	m_display.setFont(u8g2_font_ncenB12_tr);
+	drawCentered(name.c_str(), 51);
+
+	m_display.sendBuffer();
+}
+
+void Display::showAuthenticationUnavailable(
+	uint32_t remainingSeconds,
+	uint8_t errorCount,
+	uint32_t maxErrorCount
+)
+{
+	m_display.clearBuffer();
+
+	drawHeader(remainingSeconds, errorCount, maxErrorCount, true);
+
+	m_display.setFont(u8g2_font_6x10_tr);
+	drawCentered(isEnglish() ? "FINGERPRINT" : "IMPRONTA", 31);
+	drawCentered(isEnglish() ? "NOT AVAILABLE" : "NON DISPONIBILE", 49);
+
+	m_display.sendBuffer();
+}
+
 void Display::showFinished(uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();

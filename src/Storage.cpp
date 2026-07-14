@@ -12,6 +12,7 @@ namespace
 	const char *DefaultAdminPin = "000000";
 	const char *DefaultBleName = "Open Airsoft Countdown";
 	const char *DefaultLanguage = "it";
+	const char *DefaultAuthorizedUserIds = "1";
 	const bool DefaultSoundEnabled = true;
 	const bool DefaultRfid = false;
 	const bool DefaultFingerprint = false;
@@ -62,6 +63,8 @@ bool Storage::begin()
 	Serial.println(m_config.bleName);
 	Serial.print("UI language: ");
 	Serial.println(m_config.language);
+	Serial.print("Authorized user IDs: ");
+	Serial.println(m_config.authorizedUserIds);
 	Serial.print("Sound enabled: ");
 	Serial.println(m_config.soundEnabled ? "yes" : "no");
 	Serial.print("RFID enabled: ");
@@ -85,6 +88,7 @@ bool Storage::saveConfig(const AppConfig &config)
 {
 	AppConfig normalizedConfig = config;
 	normalizedConfig.language = sanitizeLanguage(config.language);
+	normalizedConfig.authorizedUserIds = sanitizeAuthorizedUserIds(config.authorizedUserIds);
 
 	File file = LittleFS.open(ConfigFilePath, "w");
 
@@ -98,6 +102,7 @@ bool Storage::saveConfig(const AppConfig &config)
 	document["adminPin"] = normalizedConfig.adminPin;
 	document["bleName"] = normalizedConfig.bleName;
 	document["language"] = normalizedConfig.language;
+	document["authorizedUserIds"] = normalizedConfig.authorizedUserIds;
 	document["soundEnabled"] = normalizedConfig.soundEnabled;
 	document["rfid"] = normalizedConfig.rfid;
 	document["fingerprint"] = normalizedConfig.fingerprint;
@@ -160,6 +165,7 @@ bool Storage::createDefaultConfig()
 	defaultConfig.adminPin = DefaultAdminPin;
 	defaultConfig.bleName = DefaultBleName;
 	defaultConfig.language = DefaultLanguage;
+	defaultConfig.authorizedUserIds = DefaultAuthorizedUserIds;
 	defaultConfig.soundEnabled = DefaultSoundEnabled;
 	defaultConfig.rfid = DefaultRfid;
 	defaultConfig.fingerprint = DefaultFingerprint;
@@ -225,6 +231,11 @@ bool Storage::loadConfig()
 		shouldSaveConfig = true;
 	}
 
+	if (!document["authorizedUserIds"].is<const char *>())
+	{
+		shouldSaveConfig = true;
+	}
+
 	if (!document["soundEnabled"].is<bool>())
 	{
 		shouldSaveConfig = true;
@@ -253,10 +264,12 @@ bool Storage::loadConfig()
 	const char *adminPin = document["adminPin"] | DefaultAdminPin;
 	const char *bleName = document["bleName"] | DefaultBleName;
 	const char *language = document["language"] | DefaultLanguage;
+	const char *authorizedUserIds = document["authorizedUserIds"] | DefaultAuthorizedUserIds;
 
 	m_config.adminPin = adminPin;
 	m_config.bleName = bleName;
 	m_config.language = language;
+	m_config.authorizedUserIds = authorizedUserIds;
 	m_config.soundEnabled = document["soundEnabled"] | DefaultSoundEnabled;
 	m_config.rfid = document["rfid"] | DefaultRfid;
 	m_config.fingerprint = document["fingerprint"] | DefaultFingerprint;
@@ -280,6 +293,15 @@ bool Storage::loadConfig()
 	if (sanitizedLanguage != m_config.language)
 	{
 		m_config.language = sanitizedLanguage;
+		shouldSaveConfig = true;
+	}
+
+	const String sanitizedAuthorizedUserIds =
+		sanitizeAuthorizedUserIds(m_config.authorizedUserIds);
+
+	if (sanitizedAuthorizedUserIds != m_config.authorizedUserIds)
+	{
+		m_config.authorizedUserIds = sanitizedAuthorizedUserIds;
 		shouldSaveConfig = true;
 	}
 
@@ -337,6 +359,68 @@ String Storage::sanitizeLanguage(const String &language) const
 	}
 
 	return String(DefaultLanguage);
+}
+
+String Storage::sanitizeAuthorizedUserIds(const String &value) const
+{
+	String normalized = value;
+	normalized.trim();
+	normalized.replace(" ", "");
+
+	if (normalized.length() == 0)
+	{
+		return String(DefaultAuthorizedUserIds);
+	}
+
+	const bool hasComma = normalized.indexOf(',') >= 0;
+	const bool hasSemicolon = normalized.indexOf(';') >= 0;
+
+	if (hasComma && hasSemicolon)
+	{
+		return String(DefaultAuthorizedUserIds);
+	}
+
+	uint8_t idCount = 0;
+	uint16_t start = 0;
+
+	for (uint16_t i = 0; i <= normalized.length(); i++)
+	{
+		const bool atEnd = i == normalized.length();
+		const bool atSeparator = !atEnd && (normalized[i] == ',' || normalized[i] == ';');
+
+		if (!atEnd && !atSeparator)
+		{
+			if (normalized[i] < '0' || normalized[i] > '9')
+			{
+				return String(DefaultAuthorizedUserIds);
+			}
+
+			continue;
+		}
+
+		if (i == start)
+		{
+			return String(DefaultAuthorizedUserIds);
+		}
+
+		const uint32_t id = static_cast<uint32_t>(normalized.substring(start, i).toInt());
+
+		if (id == 0 || id > 65535)
+		{
+			return String(DefaultAuthorizedUserIds);
+		}
+
+		idCount++;
+
+		if (hasComma && idCount > 4)
+		{
+			return String(DefaultAuthorizedUserIds);
+		}
+
+		start = i + 1;
+	}
+
+	return normalized;
 }
 
 uint32_t Storage::sanitizeMaxErrorCount(uint32_t count) const

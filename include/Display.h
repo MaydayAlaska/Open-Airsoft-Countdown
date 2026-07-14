@@ -19,6 +19,8 @@ public:
 	void showMessage(const String &line1, const String &line2, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showPinError(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showMaximumError(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
+	void showUserGreeting(const String &name, uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
+	void showAuthenticationUnavailable(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount);
 	void showFinished(uint8_t errorCount, uint32_t maxErrorCount);
 
 private:

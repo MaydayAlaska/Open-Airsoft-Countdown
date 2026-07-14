@@ -6,6 +6,7 @@ namespace
 	constexpr uint32_t PinErrorMessageDurationMs = 1500;
 	constexpr uint32_t MaximumErrorMessageDurationMs = 2000;
 	constexpr uint32_t MaximumErrorCompensationSeconds = MaximumErrorMessageDurationMs / 1000;
+	constexpr uint32_t UserGreetingMessageDurationMs = 2000;
 }
 
 bool Application::begin()
@@ -19,6 +20,12 @@ bool Application::begin()
 
 	if (!m_users.begin())
 	{
+		return false;
+	}
+
+	if (!loadAuthorizedUsers())
+	{
+		Serial.println("Invalid authorized user configuration.");
 		return false;
 	}
 
@@ -83,6 +90,13 @@ void Application::update()
 			Serial.print("Last NFC UID received by application: ");
 			Serial.println(m_nfcReader.getLastUid());
 
+			if (m_mode == Mode::Running)
+			{
+				m_disarmUidInput = m_nfcReader.getLastUid();
+				m_disarmUidInput.trim();
+				m_disarmUidInput.toUpperCase();
+			}
+
 			m_nfcReader.clearNewUid();
 		}
 	}
@@ -106,6 +120,10 @@ void Application::update()
 	else if (m_maximumErrorMessageActive)
 	{
 		updateMaximumErrorMessage();
+	}
+	else if (m_userGreetingMessageActive)
+	{
+		updateUserGreetingMessage();
 	}
 	else
 	{
@@ -132,7 +150,7 @@ void Application::update()
 				{
 					m_timer.reset();
 					m_timerInput = "";
-					m_disarmPinInput = "";
+					resetDisarmAuthentication();
 					m_errorCount = 0;
 					m_lastDisplayedSeconds = 0xFFFFFFFF;
 
@@ -177,170 +195,12 @@ void Application::handleAdminPin(char key)
 
 	if (key == '#')
 	{
-		if (m_adminPinInput == m_storage.getConfig().adminPin)
+		if (!processDisarmAttempt(remainingSeconds))
 		{
-			m_adminPinInput = "";
-			m_errorCount = 0;
-
-			m_mode = Mode::SetTimer;
-			m_timerInput = "";
-			m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
-
-			sendBleStatus();
-		}
-		else
-		{
-			m_adminPinInput = "";
-			showPinErrorMessage(0);
-		}
-
-		return;
-	}
-
-	if (isDigit(key) && m_adminPinInput.length() < 6)
-	{
-		m_adminPinInput += key;
-		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, m_storage.getConfig().maxErrorCount);
-	}
-}
-
-void Application::handleSetTimer(char key)
-{
-	if (key == '\0')
-	{
-		return;
-	}
-
-	if (key == '*')
-	{
-		if (m_timerInput.length() > 0)
-		{
-			m_timerInput.remove(m_timerInput.length() - 1);
-		}
-
-		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
-		return;
-	}
-
-	if (key == '#')
-	{
-		const uint32_t duration = parseTimerInput();
-
-		if (duration == 0)
-		{
-			m_timerInput = "";
-			m_display.showMessage(
-				"TIMER",
-				isEnglishLanguage() ? "INVALID" : "NON VALIDO",
-				0,
-				m_errorCount,
-				m_storage.getConfig().maxErrorCount
-			);
-			return;
-		}
-
-		m_timer.setDuration(duration);
-		m_timer.start();
-
-		m_disarmPinInput = "";
-		m_errorCount = 0;
-		m_lastDisplayedSeconds = 0xFFFFFFFF;
-		m_mode = Mode::Running;
-
-		sendBleStatus();
-
-		return;
-	}
-
-	if (isDigit(key) && m_timerInput.length() < 6)
-	{
-		m_timerInput += key;
-		m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
-	}
-}
-
-void Application::handleRunning(char key)
-{
-	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
-	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
-
-	const bool secondTick = m_timer.consumeSecondTick();
-
-	if (secondTick)
-	{
-		if (remainingSeconds > 0 && remainingSeconds <= 5 && m_storage.getConfig().soundEnabled)
-		{
-			m_buzzer.beep(80);
-		}
-	}
-
-	if (m_timer.isFinished())
-	{
-		m_mode = Mode::Finished;
-
-		if (m_storage.getConfig().soundEnabled)
-		{
-			m_buzzer.beep(3000);
-		}
-
-		m_display.showFinished(m_errorCount, maxErrorCount);
-
-		sendBleStatus();
-
-		return;
-	}
-
-	if (m_errorCount >= maxErrorCount)
-	{
-		if (remainingSeconds != m_lastDisplayedSeconds)
-		{
-			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
-		}
-
-		return;
-	}
-
-	if (key == '*')
-	{
-		if (m_disarmPinInput.length() > 0)
-		{
-			m_disarmPinInput.remove(m_disarmPinInput.length() - 1);
-			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount, maxErrorCount);
-		}
-		else
-		{
-			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
-		}
-
-		return;
-	}
-
-	if (key == '#')
-	{
-		if (m_disarmPinInput == m_storage.getConfig().adminPin)
-		{
-			Serial.println("Timer stopped by keypad.");
-
-			m_timer.stop();
-
-			m_timerInput = "";
-			m_disarmPinInput = "";
-			m_errorCount = 0;
-
-			m_mode = Mode::Stopped;
-			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
-
-			sendBleStatus();
-		}
-		else
-		{
-			Serial.println("Wrong disarm PIN.");
+			Serial.println("Wrong or incomplete user authentication.");
 
 			m_disarmPinInput = "";
+			m_disarmUidInput = "";
 
 			if (m_errorCount < maxErrorCount)
 			{
@@ -359,30 +219,20 @@ void Application::handleRunning(char key)
 					const uint32_t compensatedPenaltySeconds =
 						penaltySeconds + MaximumErrorCompensationSeconds;
 
-					Serial.print("Forcing timer to ");
-					Serial.print(compensatedPenaltySeconds);
-					Serial.println(" seconds, including message compensation.");
-
 					m_timer.setRemainingSeconds(compensatedPenaltySeconds);
 					displayedRemainingSeconds = compensatedPenaltySeconds;
-				}
-				else
-				{
-					Serial.println("Penalty countdown disabled. Remaining time unchanged.");
 				}
 
 				m_lastDisplayedSeconds = 0xFFFFFFFF;
 				showMaximumErrorMessage(displayedRemainingSeconds);
-
-				sendBleStatus();
 			}
 			else
 			{
 				m_lastDisplayedSeconds = remainingSeconds;
 				showPinErrorMessage(remainingSeconds);
-
-				sendBleStatus();
 			}
+
+			sendBleStatus();
 		}
 
 		return;
@@ -540,6 +390,236 @@ void Application::restoreDisplayAfterMaximumError()
 			m_display.showFinished(m_errorCount, maxErrorCount);
 			break;
 	}
+}
+
+bool Application::loadAuthorizedUsers()
+{
+	const String value = m_storage.getConfig().authorizedUserIds;
+	m_requiredUserCount = 0;
+	m_requireAllUsers = value.indexOf(',') >= 0;
+
+	const char separator = m_requireAllUsers ? ',' : ';';
+	uint16_t start = 0;
+
+	for (uint16_t i = 0; i <= value.length(); i++)
+	{
+		if (i < value.length() && value[i] != separator)
+		{
+			continue;
+		}
+
+		if (m_requiredUserCount >= MaxRequiredUsers)
+		{
+			return false;
+		}
+
+		const uint16_t id = static_cast<uint16_t>(value.substring(start, i).toInt());
+		UserRecord user;
+
+		if (id == 0 || !m_users.getUserById(id, user))
+		{
+			Serial.print("Authorized user ID not found: ");
+			Serial.println(id);
+			return false;
+		}
+
+		for (uint8_t existing = 0; existing < m_requiredUserCount; existing++)
+		{
+			if (m_requiredUserIds[existing] == id)
+			{
+				return false;
+			}
+		}
+
+		m_requiredUserIds[m_requiredUserCount] = id;
+		m_authenticatedUsers[m_requiredUserCount] = false;
+		m_requiredUserCount++;
+		start = i + 1;
+	}
+
+	return m_requiredUserCount > 0;
+}
+
+void Application::resetDisarmAuthentication()
+{
+	m_disarmPinInput = "";
+	m_disarmUidInput = "";
+
+	for (uint8_t i = 0; i < MaxRequiredUsers; i++)
+	{
+		m_authenticatedUsers[i] = false;
+	}
+
+	m_userGreetingMessageActive = false;
+	m_stopAfterUserGreeting = false;
+}
+
+bool Application::processDisarmAttempt(uint32_t remainingSeconds)
+{
+	const AppConfig &config = m_storage.getConfig();
+
+	if (config.fingerprint)
+	{
+		m_display.showAuthenticationUnavailable(
+			remainingSeconds,
+			m_errorCount,
+			config.maxErrorCount
+		);
+		return false;
+	}
+
+	for (uint8_t i = 0; i < m_requiredUserCount; i++)
+	{
+		if (m_authenticatedUsers[i])
+		{
+			continue;
+		}
+
+		UserRecord user;
+
+		if (!m_users.getUserById(m_requiredUserIds[i], user))
+		{
+			continue;
+		}
+
+		if (user.pin != m_disarmPinInput)
+		{
+			continue;
+		}
+
+		if (config.rfid && user.uid != m_disarmUidInput)
+		{
+			continue;
+		}
+
+		completeUserAuthentication(user, remainingSeconds);
+		m_disarmPinInput = "";
+		m_disarmUidInput = "";
+		return true;
+	}
+
+	return false;
+}
+
+bool Application::isUserRequired(uint16_t id) const
+{
+	for (uint8_t i = 0; i < m_requiredUserCount; i++)
+	{
+		if (m_requiredUserIds[i] == id)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Application::isUserAlreadyAuthenticated(uint16_t id) const
+{
+	for (uint8_t i = 0; i < m_requiredUserCount; i++)
+	{
+		if (m_requiredUserIds[i] == id)
+		{
+			return m_authenticatedUsers[i];
+		}
+	}
+
+	return false;
+}
+
+bool Application::areAllRequiredUsersAuthenticated() const
+{
+	for (uint8_t i = 0; i < m_requiredUserCount; i++)
+	{
+		if (!m_authenticatedUsers[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void Application::completeUserAuthentication(const UserRecord &user, uint32_t remainingSeconds)
+{
+	for (uint8_t i = 0; i < m_requiredUserCount; i++)
+	{
+		if (m_requiredUserIds[i] == user.id)
+		{
+			m_authenticatedUsers[i] = true;
+			break;
+		}
+	}
+
+	m_stopAfterUserGreeting =
+		!m_requireAllUsers || areAllRequiredUsersAuthenticated();
+
+	showUserGreetingMessage(user, remainingSeconds);
+}
+
+void Application::showUserGreetingMessage(const UserRecord &user, uint32_t remainingSeconds)
+{
+	m_userGreetingMessageActive = true;
+	m_userGreetingMessageStartedAt = millis();
+
+	m_display.showUserGreeting(
+		user.name,
+		remainingSeconds,
+		m_errorCount,
+		m_storage.getConfig().maxErrorCount
+	);
+}
+
+void Application::updateUserGreetingMessage()
+{
+	if (!m_userGreetingMessageActive)
+	{
+		return;
+	}
+
+	if (millis() - m_userGreetingMessageStartedAt < UserGreetingMessageDurationMs)
+	{
+		return;
+	}
+
+	m_userGreetingMessageActive = false;
+
+	if (m_stopAfterUserGreeting)
+	{
+		stopTimerAfterAuthentication();
+		return;
+	}
+
+	restoreDisplayAfterUserGreeting();
+}
+
+void Application::restoreDisplayAfterUserGreeting()
+{
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	m_lastDisplayedSeconds = remainingSeconds;
+	m_display.showCountdown(
+		remainingSeconds,
+		m_errorCount,
+		m_storage.getConfig().maxErrorCount
+	);
+}
+
+void Application::stopTimerAfterAuthentication()
+{
+	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
+
+	Serial.println("Timer stopped by authorized user authentication.");
+
+	m_timer.stop();
+	m_timerInput = "";
+	resetDisarmAuthentication();
+	m_errorCount = 0;
+	m_mode = Mode::Stopped;
+	m_lastDisplayedSeconds = remainingSeconds;
+	m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+
+	sendBleStatus();
 }
 
 void Application::handleBleCommand(const String &command)
@@ -716,7 +796,7 @@ void Application::handleBleCommand(const String &command)
 		m_timer.setDuration(duration);
 
 		m_timerInput = "";
-		m_disarmPinInput = "";
+		resetDisarmAuthentication();
 		m_errorCount = 0;
 		m_lastDisplayedSeconds = 0xFFFFFFFF;
 
@@ -748,7 +828,7 @@ void Application::handleBleCommand(const String &command)
 
 		m_timer.start();
 
-		m_disarmPinInput = "";
+		resetDisarmAuthentication();
 		m_errorCount = 0;
 		m_lastDisplayedSeconds = 0xFFFFFFFF;
 		m_mode = Mode::Running;
@@ -767,7 +847,7 @@ void Application::handleBleCommand(const String &command)
 		m_timer.stop();
 
 		m_timerInput = "";
-		m_disarmPinInput = "";
+		resetDisarmAuthentication();
 		m_errorCount = 0;
 
 		m_mode = Mode::Stopped;
@@ -785,7 +865,7 @@ void Application::handleBleCommand(const String &command)
 		m_timer.reset();
 
 		m_timerInput = "";
-		m_disarmPinInput = "";
+		resetDisarmAuthentication();
 		m_errorCount = 0;
 		m_lastDisplayedSeconds = 0xFFFFFFFF;
 
@@ -860,13 +940,15 @@ void Application::sendBleConfig()
 	const AppConfig &config = m_storage.getConfig();
 
 	String response;
-	response.reserve(198);
+	response.reserve(240);
 	response = "CONFIG:adminPin=";
 	response += config.adminPin;
 	response += ";bleName=";
 	response += config.bleName;
 	response += ";language=";
 	response += config.language;
+	response += ";authorizedUserIds=";
+	response += config.authorizedUserIds;
 	response += ";soundEnabled=";
 	response += (config.soundEnabled ? "1" : "0");
 	response += ";rfid=";
@@ -920,6 +1002,7 @@ bool Application::applyBleConfig(const String &body)
 	const String adminPin = getCommandValue(body, "adminPin");
 	const String bleName = getCommandValue(body, "bleName");
 	String language = getCommandValue(body, "language");
+	String authorizedUserIds = getCommandValue(body, "authorizedUserIds");
 	const String soundText = getCommandValue(body, "soundEnabled");
 	const String rfidText = getCommandValue(body, "rfid");
 	const String fingerprintText = getCommandValue(body, "fingerprint");
@@ -935,10 +1018,22 @@ bool Application::applyBleConfig(const String &body)
 		language = m_storage.getConfig().language;
 	}
 
+	if (authorizedUserIds.length() == 0)
+	{
+		authorizedUserIds = m_storage.getConfig().authorizedUserIds;
+	}
+
+	authorizedUserIds.trim();
+	authorizedUserIds.replace(" ", "");
+
 	language.trim();
 	language.toLowerCase();
 
-	if (!isValidPin(adminPin) || !isValidProtocolText(bleName, 48) || !isValidLanguage(language))
+	if (!isValidPin(adminPin) ||
+		!isValidProtocolText(bleName, 48) ||
+		!isValidLanguage(language) ||
+		authorizedUserIds.length() == 0 ||
+		authorizedUserIds.length() > 32)
 	{
 		return false;
 	}
@@ -967,6 +1062,7 @@ bool Application::applyBleConfig(const String &body)
 	config.adminPin = adminPin;
 	config.bleName = bleName;
 	config.language = language;
+	config.authorizedUserIds = authorizedUserIds;
 	config.soundEnabled = soundEnabled;
 	config.rfid = rfid;
 	config.fingerprint = fingerprint;

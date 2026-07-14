@@ -64,6 +64,19 @@ bool Users::getUserByPosition(uint8_t position, UserRecord &user) const
 	return false;
 }
 
+bool Users::getUserById(uint16_t id, UserRecord &user) const
+{
+	const int index = findIndexById(id);
+
+	if (index < 0)
+	{
+		return false;
+	}
+
+	user = m_users[index];
+	return true;
+}
+
 bool Users::authenticate(const String &uid, const String &pin) const
 {
 	const int index = findIndexByUid(uid);

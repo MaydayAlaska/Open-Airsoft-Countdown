@@ -38,6 +38,18 @@ private:
 	void updateMaximumErrorMessage();
 	void restoreDisplayAfterMaximumError();
 
+	bool loadAuthorizedUsers();
+	void resetDisarmAuthentication();
+	bool processDisarmAttempt(uint32_t remainingSeconds);
+	bool isUserRequired(uint16_t id) const;
+	bool isUserAlreadyAuthenticated(uint16_t id) const;
+	bool areAllRequiredUsersAuthenticated() const;
+	void completeUserAuthentication(const UserRecord &user, uint32_t remainingSeconds);
+	void showUserGreetingMessage(const UserRecord &user, uint32_t remainingSeconds);
+	void updateUserGreetingMessage();
+	void restoreDisplayAfterUserGreeting();
+	void stopTimerAfterAuthentication();
+
 	void handleBleCommand(const String &command);
 	void sendBleStatus();
 	void sendBleStatusIfChanged();
@@ -75,6 +87,13 @@ private:
 	String m_adminPinInput;
 	String m_timerInput;
 	String m_disarmPinInput;
+	String m_disarmUidInput;
+
+	static constexpr uint8_t MaxRequiredUsers = 4;
+	uint16_t m_requiredUserIds[MaxRequiredUsers] = {};
+	bool m_authenticatedUsers[MaxRequiredUsers] = {};
+	uint8_t m_requiredUserCount = 0;
+	bool m_requireAllUsers = false;
 
 	uint8_t m_errorCount = 0;
 
@@ -85,6 +104,10 @@ private:
 
 	bool m_maximumErrorMessageActive = false;
 	uint32_t m_maximumErrorMessageStartedAt = 0;
+
+	bool m_userGreetingMessageActive = false;
+	uint32_t m_userGreetingMessageStartedAt = 0;
+	bool m_stopAfterUserGreeting = false;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
 
