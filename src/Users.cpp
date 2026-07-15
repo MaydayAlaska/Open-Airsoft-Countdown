@@ -6,6 +6,9 @@
 namespace
 {
 	const char *UsersFilePath = "/users.json";
+	const char *DefaultUserName = "Default (delete)";
+	const char *DefaultUserUid = "00000000";
+	const char *DefaultUserPin = "000000";
 }
 
 bool Users::begin()
@@ -18,6 +21,17 @@ bool Users::begin()
 	{
 		Serial.println("Failed to load users.json.");
 		return false;
+	}
+
+	if (count() == 0)
+	{
+		Serial.println("No users found. Creating default user...");
+
+		if (!addUser(DefaultUserName, DefaultUserUid, DefaultUserPin))
+		{
+			Serial.println("Failed to create default user.");
+			return false;
+		}
 	}
 
 	Serial.print("Users loaded: ");
