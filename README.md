@@ -23,6 +23,8 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 
 # Italiano
 
+> **Installazione web:** [installa il firmware dal browser](https://maydayalaska.github.io/Open-Airsoft-Countdown/)
+
 ## Descrizione
 
 **Open Airsoft Countdown** è un dispositivo di gioco open source basato su **ESP32-S3**. Integra un timer countdown, display OLED, tastierino 4×4, autenticazione utenti, lettore NFC opzionale, buzzer, LED di stato e controllo remoto tramite Bluetooth Low Energy.
@@ -36,6 +38,20 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 - scenografie e prop interattivi.
 
 > Questo progetto è destinato esclusivamente all’intrattenimento. Non è progettato per controllare dispositivi reali, pericolosi, pirotecnici o esplosivi.
+
+## Installazione rapida dal browser
+
+È possibile installare il firmware senza Visual Studio Code e senza compilare il progetto.
+
+Pagina di installazione:
+
+https://maydayalaska.github.io/Open-Airsoft-Countdown/
+
+Requisiti:
+
+- computer con browser compatibile con Web Serial;
+- cavo USB dati;
+- scheda ESP32-S3 collegata al computer.
 
 ## Funzionalità attuali
 
@@ -56,7 +72,8 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 - configurazione e utenti salvati in LittleFS;
 - controllo amministrativo completo tramite BLE;
 - applicazione Android dedicata;
-- migrazione automatica dei vecchi `config.json` con campi mancanti.
+- migrazione automatica dei vecchi `config.json` con campi mancanti;
+- creazione automatica dell’utente predefinito se `users.json` è vuoto.
 
 ## Novità firmware v1.8
 
@@ -101,6 +118,48 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 | LED di stato | 14 |
 
 OLED e PN532 utilizzano due bus I²C separati. L’OLED resta su GPIO 8/9, mentre il PN532 usa GPIO 1/2 tramite il controller `TwoWire(1)`.
+
+## Collegamenti principali
+
+### OLED SH1106
+
+```text
+OLED GND  -> ESP32 GND
+OLED VCC  -> ESP32 3V3
+OLED SDA  -> ESP32 GPIO8
+OLED SCL  -> ESP32 GPIO9
+```
+
+### PN532
+
+```text
+PN532 GND    -> ESP32 GND
+PN532 VCC    -> ESP32 3V3
+PN532 SDA    -> ESP32 GPIO1
+PN532 SCL    -> ESP32 GPIO2
+PN532 IRQ    -> ESP32 GPIO10
+PN532 RESET  -> ESP32 GPIO11
+```
+
+### Tastierino 4×4
+
+```text
+R1 -> GPIO18
+R2 -> GPIO17
+R3 -> GPIO16
+R4 -> GPIO15
+C1 -> GPIO7
+C2 -> GPIO6
+C3 -> GPIO5
+C4 -> GPIO4
+```
+
+### Buzzer e LED
+
+```text
+Buzzer attivo -> GPIO21
+LED di stato  -> GPIO14
+```
 
 ## Flusso di utilizzo
 
@@ -240,7 +299,22 @@ Gli utenti sono salvati in:
 /users.json
 ```
 
-Esempio:
+Se `users.json` non esiste o non contiene utenti, il firmware crea automaticamente un utente predefinito:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Default (delete)",
+    "uid": "00000000",
+    "pin": "000000"
+  }
+]
+```
+
+Questo utente serve solo per permettere il primo avvio con la configurazione predefinita `authorizedUserIds = "1"`. Può essere eliminato dopo aver creato un nuovo utente e aggiornato la configurazione degli utenti autorizzati.
+
+Esempio di utente reale:
 
 ```json
 [
@@ -343,14 +417,6 @@ pio run --target upload
 pio device monitor
 ```
 
-Il file `platformio.ini` contiene attualmente:
-
-```ini
-upload_port = COM9
-```
-
-Modifica o rimuovi questa riga se la scheda utilizza una porta differente.
-
 LittleFS viene inizializzato automaticamente. Se `config.json` o `users.json` non esistono, il firmware li crea con valori predefiniti.
 
 ## Struttura principale
@@ -402,6 +468,8 @@ Consulta il file [LICENSE](LICENSE) per i dettagli.
 
 # English
 
+> **Web installer:** [install the firmware from your browser](https://maydayalaska.github.io/Open-Airsoft-Countdown/)
+
 ## Description
 
 **Open Airsoft Countdown** is an open-source game device based on the **ESP32-S3**. It combines a countdown timer, OLED display, 4×4 keypad, user authentication, optional NFC reader, buzzer, status LED, and Bluetooth Low Energy remote control.
@@ -415,6 +483,20 @@ It is intended for:
 - interactive scenery and props.
 
 > This project is intended exclusively for entertainment. It is not designed to control real, dangerous, pyrotechnic, or explosive devices.
+
+## Quick browser installation
+
+The firmware can be installed without Visual Studio Code and without compiling the project.
+
+Installer page:
+
+https://maydayalaska.github.io/Open-Airsoft-Countdown/
+
+Requirements:
+
+- computer with a Web Serial compatible browser;
+- USB data cable;
+- ESP32-S3 board connected to the computer.
 
 ## Current features
 
@@ -435,7 +517,8 @@ It is intended for:
 - configuration and users stored in LittleFS;
 - complete administrative control over BLE;
 - dedicated Android application;
-- automatic migration of older `config.json` files with missing fields.
+- automatic migration of older `config.json` files with missing fields;
+- automatic default-user creation when `users.json` is empty.
 
 ## Firmware v1.8 changes
 
@@ -480,6 +563,48 @@ It is intended for:
 | Status LED | 14 |
 
 The OLED and PN532 now use separate I²C buses. The OLED remains on GPIO 8/9, while the PN532 uses GPIO 1/2 through the `TwoWire(1)` controller.
+
+## Main wiring
+
+### SH1106 OLED
+
+```text
+OLED GND  -> ESP32 GND
+OLED VCC  -> ESP32 3V3
+OLED SDA  -> ESP32 GPIO8
+OLED SCL  -> ESP32 GPIO9
+```
+
+### PN532
+
+```text
+PN532 GND    -> ESP32 GND
+PN532 VCC    -> ESP32 3V3
+PN532 SDA    -> ESP32 GPIO1
+PN532 SCL    -> ESP32 GPIO2
+PN532 IRQ    -> ESP32 GPIO10
+PN532 RESET  -> ESP32 GPIO11
+```
+
+### 4×4 keypad
+
+```text
+R1 -> GPIO18
+R2 -> GPIO17
+R3 -> GPIO16
+R4 -> GPIO15
+C1 -> GPIO7
+C2 -> GPIO6
+C3 -> GPIO5
+C4 -> GPIO4
+```
+
+### Buzzer and LED
+
+```text
+Active buzzer -> GPIO21
+Status LED    -> GPIO14
+```
 
 ## Operating flow
 
@@ -619,7 +744,22 @@ Users are stored in:
 /users.json
 ```
 
-Example:
+If `users.json` does not exist or contains no users, the firmware automatically creates a default user:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Default (delete)",
+    "uid": "00000000",
+    "pin": "000000"
+  }
+]
+```
+
+This user only exists to allow the first boot with the default `authorizedUserIds = "1"` configuration. It can be deleted after creating a new user and updating the authorized-user configuration.
+
+Example real user:
 
 ```json
 [
@@ -721,14 +861,6 @@ pio run
 pio run --target upload
 pio device monitor
 ```
-
-The current `platformio.ini` contains:
-
-```ini
-upload_port = COM9
-```
-
-Change or remove this line when the board uses a different port.
 
 LittleFS is initialized automatically. When `config.json` or `users.json` is missing, the firmware creates it with default values.
 
