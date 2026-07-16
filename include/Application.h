@@ -40,6 +40,7 @@ private:
 
 	bool loadAuthorizedUsers();
 	void resetDisarmAuthentication();
+	void selectUserFromNfc(const String &uid);
 	bool processDisarmAttempt(uint32_t remainingSeconds);
 	bool isUserRequired(uint16_t id) const;
 	bool isUserAlreadyAuthenticated(uint16_t id) const;
@@ -88,6 +89,7 @@ private:
 	String m_timerInput;
 	String m_disarmPinInput;
 	String m_disarmUidInput;
+	uint16_t m_selectedUserId = 0;
 
 	static constexpr uint8_t MaxRequiredUsers = 4;
 	uint16_t m_requiredUserIds[MaxRequiredUsers] = {};

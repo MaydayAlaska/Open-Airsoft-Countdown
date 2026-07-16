@@ -19,6 +19,7 @@ public:
 	uint8_t count() const;
 	bool getUserByPosition(uint8_t position, UserRecord &user) const;
 	bool getUserById(uint16_t id, UserRecord &user) const;
+	bool getUserByUid(const String &uid, UserRecord &user) const;
 
 	bool authenticate(const String &uid, const String &pin) const;
 

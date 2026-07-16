@@ -92,9 +92,7 @@ void Application::update()
 
 			if (m_mode == Mode::Running)
 			{
-				m_disarmUidInput = m_nfcReader.getLastUid();
-				m_disarmUidInput.trim();
-				m_disarmUidInput.toUpperCase();
+				selectUserFromNfc(m_nfcReader.getLastUid());
 			}
 
 			m_nfcReader.clearNewUid();
@@ -587,6 +585,7 @@ void Application::resetDisarmAuthentication()
 {
 	m_disarmPinInput = "";
 	m_disarmUidInput = "";
+	m_selectedUserId = 0;
 
 	for (uint8_t i = 0; i < MaxRequiredUsers; i++)
 	{
@@ -595,6 +594,47 @@ void Application::resetDisarmAuthentication()
 
 	m_userGreetingMessageActive = false;
 	m_stopAfterUserGreeting = false;
+}
+
+void Application::selectUserFromNfc(const String &uid)
+{
+	// A new tag always cancels the PIN and user selected by the previous tag.
+	m_disarmPinInput = "";
+	m_disarmUidInput = uid;
+	m_disarmUidInput.trim();
+	m_disarmUidInput.toUpperCase();
+	m_selectedUserId = 0;
+	m_userGreetingMessageActive = false;
+	m_stopAfterUserGreeting = false;
+
+	UserRecord user;
+
+	if (!m_users.getUserByUid(m_disarmUidInput, user))
+	{
+		Serial.println("NFC tag is not associated with a known user.");
+		return;
+	}
+
+	if (!isUserRequired(user.id))
+	{
+		Serial.print("NFC user is not required for this countdown: ");
+		Serial.println(user.id);
+		return;
+	}
+
+	if (isUserAlreadyAuthenticated(user.id))
+	{
+		Serial.print("NFC user is already authenticated: ");
+		Serial.println(user.id);
+		return;
+	}
+
+	m_selectedUserId = user.id;
+
+	Serial.print("NFC selected user ID: ");
+	Serial.println(user.id);
+
+	showUserGreetingMessage(user, m_timer.getRemainingSeconds());
 }
 
 bool Application::processDisarmAttempt(uint32_t remainingSeconds)
@@ -621,6 +661,11 @@ bool Application::processDisarmAttempt(uint32_t remainingSeconds)
 		UserRecord user;
 
 		if (!m_users.getUserById(m_requiredUserIds[i], user))
+		{
+			continue;
+		}
+
+		if (config.rfid && user.id != m_selectedUserId)
 		{
 			continue;
 		}
@@ -694,10 +739,20 @@ void Application::completeUserAuthentication(const UserRecord &user, uint32_t re
 		}
 	}
 
-	m_stopAfterUserGreeting =
+	const bool authenticationComplete =
 		!m_requireAllUsers || areAllRequiredUsersAuthenticated();
 
-	showUserGreetingMessage(user, remainingSeconds);
+	m_disarmPinInput = "";
+	m_disarmUidInput = "";
+	m_selectedUserId = 0;
+
+	if (authenticationComplete)
+	{
+		stopTimerAfterAuthentication();
+		return;
+	}
+
+	restoreDisplayAfterUserGreeting();
 }
 
 void Application::showUserGreetingMessage(const UserRecord &user, uint32_t remainingSeconds)
