@@ -341,7 +341,6 @@ void Application::handleRunning(char key)
 			Serial.println("Wrong or incomplete authorized-user authentication.");
 
 			m_disarmPinInput = "";
-			m_disarmUidInput = "";
 
 			if (m_errorCount < maxErrorCount)
 			{
@@ -387,7 +386,7 @@ void Application::handleRunning(char key)
 		return;
 	}
 
-	if (m_disarmPinInput.length() > 0)
+	if (m_selectedUserId != 0 || m_disarmPinInput.length() > 0)
 	{
 		if (remainingSeconds != m_lastDisplayedSeconds)
 		{
@@ -464,7 +463,19 @@ void Application::restoreDisplayAfterPinError()
 
 		case Mode::Running:
 			m_lastDisplayedSeconds = remainingSeconds;
-			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+			if (m_selectedUserId != 0)
+			{
+				m_display.showDisarmPin(
+					m_disarmPinInput.length(),
+					remainingSeconds,
+					m_errorCount,
+					maxErrorCount
+				);
+			}
+			else
+			{
+				m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+			}
 			break;
 
 		case Mode::Stopped:
@@ -795,6 +806,17 @@ void Application::restoreDisplayAfterUserGreeting()
 {
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
 	m_lastDisplayedSeconds = remainingSeconds;
+
+	if (m_mode == Mode::Running && m_selectedUserId != 0)
+	{
+		m_display.showDisarmPin(
+			m_disarmPinInput.length(),
+			remainingSeconds,
+			m_errorCount,
+			m_storage.getConfig().maxErrorCount
+		);
+		return;
+	}
 
 	m_display.showCountdown(
 		remainingSeconds,

@@ -36,9 +36,12 @@ bool Display::begin()
 	m_display.clearBuffer();
 
 	m_display.setFont(u8g2_font_ncenB08_tr);
-	m_display.drawStr(8, 18, "Open Airsoft");
-	m_display.drawStr(18, 34, "Countdown");
-	m_display.drawStr(38, 56, "v1.8");
+	drawCentered("Open Airsoft", 14);
+	drawCentered("Countdown", 29);
+	drawCentered("v1.8", 43);
+
+	m_display.setFont(u8g2_font_5x8_tr);
+	drawCentered("maydayalaska - GitHub", 62);
 
 	m_display.sendBuffer();
 
