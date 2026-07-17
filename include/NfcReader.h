@@ -20,7 +20,9 @@ private:
 	static constexpr uint8_t I2cSdaPin = 1;
 	static constexpr uint8_t I2cSclPin = 2;
 	static constexpr uint8_t Pn532IrqPin = 10;
-	static constexpr uint8_t Pn532ResetPin = 11;
+	// The Adafruit library requires a reset GPIO argument. On PN532 V3 modules
+	// RSTO is a module output, so this GPIO is deliberately left unconnected.
+	static constexpr uint8_t UnusedLibraryResetPin = 11;
 	static constexpr uint32_t RestartDelayMs = 500;
 
 	void startListening();
