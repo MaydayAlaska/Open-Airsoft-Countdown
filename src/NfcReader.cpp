@@ -14,11 +14,17 @@ bool NfcReader::begin()
 	Serial.println("PN532 RESET pin: GPIO11");
 
 	m_available = false;
+	m_enabled = false;
 	m_hasNewUid = false;
 	m_readerDisabled = false;
 	m_detectionStarted = false;
-	m_irqPrevious = HIGH;
+	m_configurationPending = false;
+	m_waitingForRecoveryRetry = false;
+	m_uidReleasePending = false;
 	m_lastUid = "";
+	m_lastResetMillis = 0;
+	m_lastConfigurationAttemptMillis = 0;
+	m_detectionStartedMillis = 0;
 	m_lastCardReadMillis = 0;
 
 	pinMode(Pn532IrqPin, INPUT_PULLUP);
@@ -48,15 +54,55 @@ bool NfcReader::begin()
 	Serial.println(digitalRead(Pn532IrqPin) == LOW ? "LOW" : "HIGH");
 
 	m_available = true;
-	startListening();
-	Serial.println("PN532 ready.");
+	resetForRearm();
+	Serial.println("PN532 ready. NFC listening disabled until countdown starts.");
 	return true;
+}
+
+void NfcReader::setEnabled(bool enabled)
+{
+	if (!m_available || m_enabled == enabled)
+	{
+		return;
+	}
+
+	m_enabled = enabled;
+	m_hasNewUid = false;
+	m_readerDisabled = false;
+	m_detectionStarted = false;
+
+	if (!m_enabled)
+	{
+		Serial.println("NFC listening disabled.");
+		resetForRearm();
+		return;
+	}
+
+	Serial.println("NFC listening enabled for active countdown.");
+
+	if (!m_configurationPending)
+	{
+		resetForRearm();
+	}
+}
+
+void NfcReader::resetSession()
+{
+	m_hasNewUid = false;
+	m_lastUid = "";
+	m_uidReleasePending = false;
 }
 
 void NfcReader::update()
 {
-	if (!m_available)
+	if (!m_available || !m_enabled)
 	{
+		return;
+	}
+
+	if (m_configurationPending)
+	{
+		configureAndStartListening();
 		return;
 	}
 
@@ -76,16 +122,28 @@ void NfcReader::update()
 		return;
 	}
 
-	const int irqCurrent = digitalRead(Pn532IrqPin);
-
-	if (irqCurrent == LOW && m_irqPrevious == HIGH)
+	if (digitalRead(Pn532IrqPin) == LOW)
 	{
 		Serial.println("PN532 IRQ received.");
 		handleCardDetected();
 		return;
 	}
 
-	m_irqPrevious = irqCurrent;
+	if (
+		m_uidReleasePending &&
+		millis() - m_detectionStartedMillis >= UidReleaseDelayMs
+	)
+	{
+		Serial.println("NFC field remained clear. Previous UID can be presented again.");
+		m_lastUid = "";
+		m_uidReleasePending = false;
+	}
+
+	if (millis() - m_detectionStartedMillis >= DetectionWatchdogMs)
+	{
+		Serial.println("PN532 detection watchdog: performing a slow rearm.");
+		resetForRearm();
+	}
 }
 
 bool NfcReader::hasNewUid() const
@@ -103,15 +161,62 @@ void NfcReader::clearNewUid()
 	m_hasNewUid = false;
 }
 
-void NfcReader::startListening()
+void NfcReader::resetForRearm()
 {
-	if (!m_available)
+	m_readerDisabled = false;
+	m_detectionStarted = false;
+	m_detectionStartedMillis = 0;
+	m_configurationPending = true;
+	m_waitingForRecoveryRetry = false;
+	m_uidReleasePending = false;
+
+	m_pn532.reset();
+	m_lastResetMillis = millis();
+}
+
+void NfcReader::configureAndStartListening()
+{
+	const uint32_t currentMillis = millis();
+
+	if (currentMillis - m_lastResetMillis < ResetSettleMs)
 	{
 		return;
 	}
 
-	m_irqPrevious = HIGH;
+	if (
+		m_waitingForRecoveryRetry &&
+		currentMillis - m_lastConfigurationAttemptMillis < RecoveryRetryMs
+	)
+	{
+		return;
+	}
+
+	m_lastConfigurationAttemptMillis = currentMillis;
+
+	if (!m_pn532.SAMConfig())
+	{
+		Serial.println("PN532 reconfiguration failed. Retrying in 5 seconds.");
+		m_waitingForRecoveryRetry = true;
+		m_pn532.reset();
+		m_lastResetMillis = millis();
+		return;
+	}
+
+	m_configurationPending = false;
+	m_waitingForRecoveryRetry = false;
+	Serial.println("PN532 reconfigured after reset.");
+	startListening();
+}
+
+void NfcReader::startListening()
+{
+	if (!m_available || !m_enabled)
+	{
+		return;
+	}
+
 	m_detectionStarted = false;
+	m_uidReleasePending = false;
 	Serial.println("Starting passive detection for an ISO14443A tag...");
 
 	const bool cardAlreadyPresent = m_pn532.startPassiveTargetIDDetection(
@@ -119,6 +224,7 @@ void NfcReader::startListening()
 	);
 
 	m_detectionStarted = true;
+	m_detectionStartedMillis = millis();
 
 	if (cardAlreadyPresent)
 	{
@@ -126,6 +232,8 @@ void NfcReader::startListening()
 		handleCardDetected();
 		return;
 	}
+
+	m_uidReleasePending = m_lastUid.length() > 0;
 
 	Serial.println("PN532 armed. Waiting for IRQ.");
 }
@@ -139,10 +247,19 @@ void NfcReader::handleCardDetected()
 
 	if (success && (uidLength == 4 || uidLength == 7))
 	{
-		m_lastUid = uidToString(uid, uidLength);
-		m_hasNewUid = true;
-		Serial.print("NFC UID: ");
-		Serial.println(m_lastUid);
+		const String detectedUid = uidToString(uid, uidLength);
+
+		if (detectedUid != m_lastUid)
+		{
+			m_lastUid = detectedUid;
+			m_hasNewUid = true;
+			Serial.print("NFC UID: ");
+			Serial.println(m_lastUid);
+		}
+		else
+		{
+			Serial.println("NFC tag still present. Duplicate ignored.");
+		}
 	}
 	else
 	{
@@ -150,9 +267,10 @@ void NfcReader::handleCardDetected()
 	}
 
 	m_detectionStarted = false;
+	m_detectionStartedMillis = 0;
+	m_uidReleasePending = false;
 	m_readerDisabled = true;
 	m_lastCardReadMillis = millis();
-	m_irqPrevious = HIGH;
 }
 
 String NfcReader::uidToString(const uint8_t *uid, uint8_t uidLength) const

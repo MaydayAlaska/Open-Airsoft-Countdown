@@ -32,20 +32,31 @@ void Timer::update()
 
 	const uint32_t currentMillis = millis();
 
-	if (currentMillis - m_lastTickMillis < 1000)
+	const uint32_t elapsedSeconds =
+		(currentMillis - m_lastTickMillis) / 1000UL;
+
+	if (elapsedSeconds == 0)
 	{
 		return;
 	}
 
-	m_lastTickMillis = currentMillis;
+	m_lastTickMillis += elapsedSeconds * 1000UL;
 
-	m_ledState = !m_ledState;
-	digitalWrite(StatusLedPin, m_ledState ? HIGH : LOW);
+	if ((elapsedSeconds & 1U) != 0)
+	{
+		m_ledState = !m_ledState;
+		digitalWrite(StatusLedPin, m_ledState ? HIGH : LOW);
+	}
 
 	if (m_remainingSeconds > 0)
 	{
-		m_remainingSeconds--;
-		m_secondTick = true;
+		const uint32_t decrement =
+			elapsedSeconds < m_remainingSeconds
+				? elapsedSeconds
+				: m_remainingSeconds;
+
+		m_remainingSeconds -= decrement;
+		m_secondTick = decrement > 0;
 
 		Serial.print("Remaining seconds: ");
 		Serial.println(m_remainingSeconds);
