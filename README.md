@@ -9,11 +9,9 @@
 # Open Airsoft Countdown
 
 Timer scenico open source basato su ESP32-S3 per softair, laser tag, escape room e giochi a obiettivi.
+Open-source ESP32-S3 game-prop countdown timer for airsoft, laser tag, escape rooms, and objective-based games.
 
-Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape rooms, and objective-based games.
-
-**Documentazione aggiornata al firmware v1.8**  
-**Documentation updated for firmware v1.8**
+**Firmware corrente: v1.9.1**
 
 [Italiano](#italiano) · [English](#english)
 
@@ -23,172 +21,61 @@ Open-source ESP32-S3 game prop countdown timer for airsoft, laser tag, escape ro
 
 # Italiano
 
-> **Installazione web:** [installa il firmware dal browser](https://maydayalaska.github.io/Open-Airsoft-Countdown/)
+> **Solo per intrattenimento.** Il progetto non è progettato per controllare esplosivi, dispositivi pirotecnici o sistemi reali pericolosi.
 
-## Descrizione
+## Installa il firmware
 
-**Open Airsoft Countdown** è un dispositivo di gioco open source basato su **ESP32-S3**. Integra un timer countdown, display OLED, tastierino 4×4, autenticazione utenti, lettore NFC opzionale, buzzer, LED di stato e controllo remoto tramite Bluetooth Low Energy.
+Il modo più semplice è il [Web Installer](https://maydayalaska.github.io/Open-Airsoft-Countdown/): collega la scheda con un cavo USB dati e usa un browser desktop compatibile con Web Serial, come Chrome o Edge. Non servono Visual Studio Code né la compilazione manuale.
 
-È pensato per:
+Per compilare o caricare da sorgente, consulta [Compilazione con PlatformIO](#compilazione-con-platformio).
 
-- softair e airsoft;
-- laser tag;
-- escape room;
-- giochi a obiettivi;
-- scenografie e prop interattivi.
+## Funzionalità
 
-> Questo progetto è destinato esclusivamente all’intrattenimento. Non è progettato per controllare dispositivi reali, pericolosi, pirotecnici o esplosivi.
+- timer countdown impostabile in formato `HHMMSS` tramite tastierino 4×4 o BLE;
+- accesso iniziale protetto da PIN amministratore a 6 cifre;
+- OLED SH1106 con interfaccia in italiano o inglese;
+- LED di stato lampeggiante durante il countdown e buzzer configurabile, compresi i beep negli ultimi 5 secondi;
+- disarmo con PIN utente e, se abilitato, autenticazione NFC con PN532;
+- modalità con uno qualunque o tutti gli utenti autorizzati;
+- gestione di utenti, configurazione e timer da Bluetooth Low Energy;
+- dati persistenti in LittleFS e migrazione automatica della configurazione precedente;
+- app Android dedicata con login, controllo timer, configurazione e gestione utenti.
 
-## Installazione rapida dal browser
+## Novità di v1.9.1
 
-È possibile installare il firmware senza Visual Studio Code e senza compilare il progetto.
+- flusso NFC ridisegnato: durante il countdown il lettore seleziona prima l'utente dalla tessera, poi il PIN deve appartenere a quello stesso utente;
+- il PN532 ascolta soltanto quando serve al disarmo e gestisce il rilascio della tessera, le letture duplicate e i tentativi di recupero del lettore;
+- la fine del countdown viene gestita prima di qualsiasi nuovo input: il timer non può più essere disarmato nell'istante in cui scade;
+- messaggio esplicito per un tempo non valido e saluto utente senza bloccare l'inserimento del PIN;
+- correzioni di affidabilità per il login amministrativo BLE e per l'aggiornamento dello stato nell'app;
+- bus I²C separati per OLED e PN532, così da evitare conflitti elettrici.
 
-Pagina di installazione:
+## Hardware e pinout
 
-https://maydayalaska.github.io/Open-Airsoft-Countdown/
+| Componente | Modello / tipo | Collegamenti GPIO |
+|---|---|---|
+| Microcontrollore | ESP32-S3-DevKitC-1 | — |
+| Display | OLED SH1106 I²C 128×64 | SDA 8, SCL 9 |
+| Lettore NFC opzionale | PN532 I²C | SDA 1, SCL 2, IRQ 10 |
+| Tastierino | Matrice 4×4 | R1 18, R2 17, R3 16, R4 15; C1 7, C2 6, C3 5, C4 4 |
+| Buzzer | Buzzer attivo | 21 |
+| LED | LED di stato | 14 |
 
-Requisiti:
+Collega alimentazione e massa di OLED e PN532 rispettivamente a `3V3` e `GND`. OLED e PN532 usano due controller I²C distinti: non collegare il bus del PN532 ai pin 8/9 dell'OLED.
 
-- computer con browser compatibile con Web Serial;
-- cavo USB dati;
-- scheda ESP32-S3 collegata al computer.
+## Utilizzo dal tastierino
 
-## Funzionalità attuali
+1. Attendi la schermata iniziale, quindi inserisci il PIN amministratore di 6 cifre e premi `#`.
+2. Inserisci il tempo in `HHMMSS`, ad esempio `001530` per 15 minuti e 30 secondi, quindi premi `#`.
+3. Durante il countdown inserisci il PIN di un utente autorizzato e premi `#`.
+4. Con `rfid=true`, presenta prima la tessera NFC dell'utente, inserisci il suo PIN e conferma con `#`.
+5. Un'autenticazione valida arresta il timer. Se sono richiesti più utenti, il timer si arresta dopo l'autenticazione di tutti loro.
 
-- countdown impostabile nel formato `HHMMSS`;
-- richiesta del PIN amministratore all’avvio;
-- gestione tramite tastierino 4×4;
-- display OLED SH1106 128×64;
-- interfaccia del display in italiano o inglese;
-- visualizzazione continua di tempo rimanente ed errori;
-- buzzer configurabile;
-- LED di stato lampeggiante durante il countdown;
-- autenticazione utenti tramite PIN;
-- autenticazione PIN + NFC quando `rfid` è attivo;
-- utenti autorizzati selezionabili tramite ID;
-- modalità con un solo utente sufficiente oppure più utenti obbligatori;
-- saluto personalizzato per 2 secondi dopo l’autenticazione;
-- penalità configurabile dopo il numero massimo di errori;
-- configurazione e utenti salvati in LittleFS;
-- controllo amministrativo completo tramite BLE;
-- applicazione Android dedicata;
-- migrazione automatica dei vecchi `config.json` con campi mancanti;
-- creazione automatica dell’utente predefinito se `users.json` è vuoto.
+`*` cancella l'ultima cifra durante l'inserimento. Al termine naturale del countdown, premi `#` per tornare all'impostazione del timer.
 
-## Novità firmware v1.8
+## Configurazione e utenti
 
-- bus I²C dell’OLED e del PN532 separati;
-- OLED invariato su SDA GPIO8 e SCL GPIO9;
-- PN532 su SDA GPIO1 e SCL GPIO2;
-- LED di stato spostato da GPIO2 a GPIO14 per evitare il conflitto con SCL;
-- PN532 inizializzato sul secondo controller I²C dell’ESP32-S3 tramite `TwoWire(1)`.
-
-## Hardware
-
-| Componente | Modello / tipo |
-|---|---|
-| Microcontrollore | ESP32-S3-DevKitC-1 |
-| Display | OLED SH1106 128×64 I²C |
-| Tastierino | Matrice 4×4 |
-| Lettore NFC | PN532 I²C |
-| Buzzer | Buzzer attivo |
-| LED | LED di stato |
-| Memoria dati | LittleFS interna all’ESP32-S3 |
-| Controllo remoto | Bluetooth Low Energy |
-
-## Pinout attuale
-
-| Funzione | GPIO |
-|---|---:|
-| OLED I²C SDA | 8 |
-| OLED I²C SCL | 9 |
-| PN532 I²C SDA | 1 |
-| PN532 I²C SCL | 2 |
-| PN532 IRQ | 10 |
-| Tastierino R1 | 18 |
-| Tastierino R2 | 17 |
-| Tastierino R3 | 16 |
-| Tastierino R4 | 15 |
-| Tastierino C1 | 7 |
-| Tastierino C2 | 6 |
-| Tastierino C3 | 5 |
-| Tastierino C4 | 4 |
-| Buzzer attivo | 21 |
-| LED di stato | 14 |
-
-OLED e PN532 utilizzano due bus I²C separati. L’OLED resta su GPIO 8/9, mentre il PN532 usa GPIO 1/2 tramite il controller `TwoWire(1)`.
-
-## Collegamenti principali
-
-### OLED SH1106
-
-```text
-OLED GND  -> ESP32 GND
-OLED VCC  -> ESP32 3V3
-OLED SDA  -> ESP32 GPIO8
-OLED SCL  -> ESP32 GPIO9
-```
-
-### PN532
-
-```text
-PN532 GND    -> ESP32 GND
-PN532 VCC    -> ESP32 3V3
-PN532 SDA    -> ESP32 GPIO1
-PN532 SCL    -> ESP32 GPIO2
-PN532 IRQ    -> ESP32 GPIO10
-
-```
-
-### Tastierino 4×4
-
-```text
-R1 -> GPIO18
-R2 -> GPIO17
-R3 -> GPIO16
-R4 -> GPIO15
-C1 -> GPIO7
-C2 -> GPIO6
-C3 -> GPIO5
-C4 -> GPIO4
-```
-
-### Buzzer e LED
-
-```text
-Buzzer attivo -> GPIO21
-LED di stato  -> GPIO14
-```
-
-## Flusso di utilizzo
-
-1. All’avvio viene mostrata la schermata iniziale per 3 secondi.
-2. Il dispositivo richiede il PIN amministratore di 6 cifre.
-3. Dopo il login viene richiesto il tempo nel formato `HHMMSS`.
-4. Premendo `#` il timer viene avviato.
-5. Durante il countdown si inserisce il PIN di un utente autorizzato.
-6. Se `rfid=true`, prima della conferma deve essere letta anche la tessera NFC dello stesso utente.
-7. Premendo `#` vengono verificati tutti i requisiti attivi.
-8. Dopo un’autenticazione valida il display mostra:
-
-```text
-SALVE
-NomeUtente
-```
-
-per 2 secondi.
-
-Il PIN amministratore non viene utilizzato per il disarmo tramite tastierino. Serve per l’accesso iniziale e per il login amministrativo BLE.
-
-## Configurazione
-
-Le impostazioni vengono salvate nel file LittleFS:
-
-```text
-/config.json
-```
-
-Configurazione aggiornata:
+Le impostazioni sono salvate in LittleFS in `/config.json`:
 
 ```json
 {
@@ -206,209 +93,49 @@ Configurazione aggiornata:
 
 | Campo | Descrizione |
 |---|---|
-| `adminPin` | PIN amministratore di esattamente 6 cifre |
-| `bleName` | Nome Bluetooth Low Energy del dispositivo |
-| `language` | Lingua del display: `it` oppure `en` |
-| `authorizedUserIds` | ID degli utenti autorizzati al disarmo |
-| `soundEnabled` | Abilita o disabilita tutti i suoni del buzzer |
-| `rfid` | Richiede anche la tessera NFC associata allo stesso utente |
-| `fingerprint` | Campo riservato al lettore di impronte |
-| `maxErrorCount` | Numero massimo di errori, da 1 a 10 |
-| `errorCountdownSeconds` | Durata della penalità, da 0 a 3600 secondi |
+| `adminPin` | PIN amministratore, esattamente 6 cifre |
+| `bleName` | Nome BLE del dispositivo |
+| `language` | `it` oppure `en` |
+| `authorizedUserIds` | Utenti autorizzati al disarmo |
+| `soundEnabled` | Abilita tutti i suoni del buzzer |
+| `rfid` | Richiede la tessera NFC associata allo stesso utente del PIN |
+| `fingerprint` | Campo riservato: il lettore di impronte non è ancora implementato |
+| `maxErrorCount` | Errori massimi, da 1 a 10 |
+| `errorCountdownSeconds` | Tempo della penalità, da 0 a 3600 secondi |
 
-### Lingua
+Per `authorizedUserIds`, usa `1;2;3` se basta uno degli utenti indicati; usa `1,2,3` se devono autenticarsi tutti, in qualsiasi ordine (massimo quattro). I separatori non possono essere mescolati e tutti gli ID devono esistere.
 
-```json
-"language": "it"
-```
+Dopo `maxErrorCount` errori, il disarmo viene bloccato. Se `errorCountdownSeconds` è maggiore di zero, il tempo rimanente viene ridotto a quel valore dopo la schermata di allarme; `0` disattiva soltanto la riduzione del tempo.
 
-Valori disponibili:
-
-- `it` — italiano;
-- `en` — inglese.
-
-### Utenti autorizzati
-
-Con il punto e virgola:
+Gli utenti sono salvati in `/users.json`. Se il file è assente o vuoto viene creato l'utente iniziale seguente:
 
 ```json
-"authorizedUserIds": "1;2;3"
+[{ "id": 1, "name": "Default (delete)", "uid": "00000000", "pin": "000000" }]
 ```
 
-è sufficiente che si autentichi **uno qualsiasi** degli utenti indicati.
+Sostituiscilo appena possibile e aggiorna `authorizedUserIds`. Ogni utente ha ID univoco, nome fino a 32 caratteri, PIN di 6 cifre e UID NFC esadecimale univoco fino a 32 caratteri.
 
-Con la virgola:
+> Non impostare `fingerprint` su `true`: finché il modulo non sarà supportato, il disarmo da tastierino non potrà essere completato.
 
-```json
-"authorizedUserIds": "1,2,3"
-```
+## Bluetooth Low Energy e app Android
 
-devono autenticarsi **tutti** gli utenti indicati, in qualsiasi ordine. In questa modalità sono consentiti al massimo 4 utenti.
-
-Regole:
-
-- sono accettati soltanto numeri, virgole e punti e virgola;
-- virgola e punto e virgola non possono essere usati insieme;
-- gli ID devono esistere in `users.json`;
-- l’ID `0` non è valido;
-- una configurazione non valida viene sostituita dal valore predefinito `"1"`.
-
-### Penalità dopo gli errori
-
-Quando viene raggiunto `maxErrorCount`, il display mostra per 2 secondi:
-
-```text
-TROPPI ERRORI
-ALLARME
-```
-
-Il timer viene impostato internamente a:
-
-```text
-errorCountdownSeconds + 2
-```
-
-I 2 secondi aggiuntivi compensano la durata della schermata di allarme. Terminato il messaggio, il tempo visibile corrisponde al valore configurato.
-
-Con:
-
-```json
-"errorCountdownSeconds": 0
-```
-
-la riduzione forzata del timer è disattivata. Il disarmo resta comunque bloccato dopo il numero massimo di errori.
-
-### Impronta digitale
-
-Il campo `fingerprint` è già presente nella configurazione, ma il lettore di impronte **non è ancora implementato** nel firmware attuale.
-
-Non impostare:
-
-```json
-"fingerprint": true
-```
-
-finché il relativo modulo non sarà supportato, perché il disarmo tramite tastierino non potrà essere completato.
-
-## Utenti
-
-Gli utenti sono salvati in:
-
-```text
-/users.json
-```
-
-Se `users.json` non esiste o non contiene utenti, il firmware crea automaticamente un utente predefinito:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Default (delete)",
-    "uid": "00000000",
-    "pin": "000000"
-  }
-]
-```
-
-Questo utente serve solo per permettere il primo avvio con la configurazione predefinita `authorizedUserIds = "1"`. Può essere eliminato dopo aver creato un nuovo utente e aggiornato la configurazione degli utenti autorizzati.
-
-Esempio di utente reale:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Carlo",
-    "uid": "04A1B2C3D4",
-    "pin": "123456"
-  }
-]
-```
-
-Regole principali:
-
-- massimo 100 utenti;
-- ID interno univoco;
-- nome lungo al massimo 32 caratteri;
-- PIN composto da esattamente 6 cifre;
-- UID NFC esadecimale lungo al massimo 32 caratteri;
-- ogni UID deve essere univoco;
-- quando un utente viene eliminato, il più piccolo ID libero può essere riutilizzato.
-
-Il PIN è sempre richiesto. Quando `rfid=true`, PIN e UID devono appartenere allo stesso utente.
-
-## Applicazione Android
-
-L’app Android permette di:
-
-- cercare e collegare il dispositivo tramite BLE;
-- effettuare il login amministrativo;
-- impostare, avviare, fermare e resettare il timer;
-- leggere lo stato in tempo reale;
-- modificare `config.json`;
-- selezionare la lingua del firmware;
-- configurare gli utenti autorizzati;
-- aggiungere, modificare ed eliminare gli utenti.
-
-Repository:
-
-https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App
-
-## Protocollo BLE
-
-Comandi principali:
+L'[app Android](https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App) consente di cercare e collegare il dispositivo, effettuare il login amministrativo, controllare il timer, leggere lo stato, modificare configurazione e utenti. Il login BLE viene chiuso alla disconnessione.
 
 | Comando | Funzione |
 |---|---|
 | `PING` | Verifica la comunicazione |
-| `LOGIN:<pin>` | Login amministrativo |
-| `LOGOUT` | Chiude la sessione |
-| `STATUS` | Richiede lo stato del timer |
-| `SETTIME:<HHMMSS>` | Imposta il timer |
-| `START` | Avvia il countdown |
-| `STOP` | Ferma il countdown |
-| `RESET` | Reimposta il timer |
-| `GETCONFIG` | Legge la configurazione |
-| `SETCONFIG:...` | Salva la configurazione |
-| `GETUSERS` | Legge gli utenti |
-| `ADDUSER:...` | Aggiunge un utente |
-| `UPDATEUSER:...` | Modifica un utente |
-| `DELUSER:<id>` | Elimina un utente |
+| `LOGIN:<pin>` / `LOGOUT` | Apre o chiude la sessione amministrativa |
+| `STATUS` | Legge lo stato del timer |
+| `SETTIME:<HHMMSS>` | Imposta la durata |
+| `START`, `STOP`, `RESET` | Controllano il timer |
+| `GETCONFIG`, `SETCONFIG:...` | Leggono e salvano la configurazione |
+| `GETUSERS`, `ADDUSER:...`, `UPDATEUSER:...`, `DELUSER:<id>` | Gestiscono gli utenti |
 
-`PING`, `STATUS`, `LOGIN` e `LOGOUT` sono gestiti direttamente. Tutti gli altri comandi amministrativi richiedono un login BLE valido.
+`PING`, `STATUS`, `LOGIN` e `LOGOUT` sono sempre disponibili; gli altri comandi richiedono un login BLE valido. Non è possibile modificare configurazione o utenti mentre il timer è attivo.
 
 ## Compilazione con PlatformIO
 
-### Requisiti software
-
-- Visual Studio Code;
-- estensione PlatformIO IDE;
-- framework Arduino per ESP32;
-- cavo USB dati.
-
-### Librerie
-
-Le dipendenze sono definite in `platformio.ini`:
-
-- U8g2;
-- NimBLE-Arduino;
-- Adafruit PN532;
-- Keypad;
-- ArduinoJson.
-
-### Compilazione e caricamento
-
-Da PlatformIO:
-
-1. apri la cartella della repository;
-2. collega l’ESP32-S3;
-3. seleziona l’ambiente `esp32-s3-devkitc-1`;
-4. esegui **Build**;
-5. esegui **Upload**;
-6. apri il monitor seriale a `115200` baud.
-
-Da terminale:
+Requisiti: Visual Studio Code con PlatformIO IDE, framework Arduino per ESP32 e un cavo USB dati.
 
 ```bash
 pio run
@@ -416,223 +143,85 @@ pio run --target upload
 pio device monitor
 ```
 
-LittleFS viene inizializzato automaticamente. Se `config.json` o `users.json` non esistono, il firmware li crea con valori predefiniti.
+L'ambiente è `esp32-s3-devkitc-1`; il monitor seriale usa `115200` baud. Le dipendenze (`U8g2`, `NimBLE-Arduino`, `Adafruit PN532`, `Keypad` e `ArduinoJson`) sono definite in [platformio.ini](platformio.ini). Lo script post-build produce anche il firmware unificato per il Web Installer.
 
-## Struttura principale
+## Struttura del progetto
 
 ```text
 data/       File iniziali LittleFS
+docs/       Web Installer e firmware pubblicato
 include/    Header C++
-src/        Implementazione firmware
-lib/        Librerie locali
-test/       Test
-platformio.ini
-README.md
-LICENSE
+src/        Firmware
+tools/      Script di build
 ```
 
-## Segnalazione bug
+## Segnalazioni, contributi e licenza
 
-Usa la sezione **Issues** di questa repository per segnalare problemi o proporre miglioramenti.
+Apri una Issue con versione del firmware, hardware, configurazione rilevante, passaggi per riprodurre il problema e log seriale. Contributi e Pull Request sono benvenuti.
 
-Indica possibilmente:
+Il progetto è distribuito con licenza [GNU Affero General Public License v3.0](LICENSE).
 
-- versione del firmware;
-- configurazione hardware;
-- contenuto rilevante di `config.json`;
-- passaggi per riprodurre il problema;
-- log del monitor seriale;
-- foto o screenshot del display.
-
-## Supporta il progetto
-
-Puoi sostenere Open Airsoft Countdown:
-
-- mettendo una Star alle repository GitHub;
-- lasciando Like, Salva e Boost su MakerWorld;
-- segnalando bug tramite GitHub Issues;
-- contribuendo con codice o documentazione;
-- effettuando una donazione PayPal.
-
-- MakerWorld: https://makerworld.com/it/@maydayalaska
-- PayPal: https://paypal.me/lorisgennarini
-
-## Licenza
-
-Questo progetto è distribuito con licenza **GNU Affero General Public License v3.0**.
-
-Consulta il file [LICENSE](LICENSE) per i dettagli.
+Puoi sostenerlo con una Star su GitHub, un Like/Save/Boost su [MakerWorld](https://makerworld.com/it/@maydayalaska) o una [donazione PayPal](https://paypal.me/lorisgennarini).
 
 ---
 
 # English
 
-> **Web installer:** [install the firmware from your browser](https://maydayalaska.github.io/Open-Airsoft-Countdown/)
+> **Entertainment only.** This project is not designed to control explosives, pyrotechnics, or other real-world hazardous systems.
 
-## Description
+## Install the firmware
 
-**Open Airsoft Countdown** is an open-source game device based on the **ESP32-S3**. It combines a countdown timer, OLED display, 4×4 keypad, user authentication, optional NFC reader, buzzer, status LED, and Bluetooth Low Energy remote control.
+The easiest option is the [Web Installer](https://maydayalaska.github.io/Open-Airsoft-Countdown/): connect the board with a USB data cable and use a Web Serial-compatible desktop browser, such as Chrome or Edge. Visual Studio Code and manual compilation are not required.
 
-It is intended for:
+For a source build or upload, see [Building with PlatformIO](#building-with-platformio).
 
-- airsoft;
-- laser tag;
-- escape rooms;
-- objective-based games;
-- interactive scenery and props.
+## Features
 
-> This project is intended exclusively for entertainment. It is not designed to control real, dangerous, pyrotechnic, or explosive devices.
+- `HHMMSS` countdown input through the 4×4 keypad or BLE;
+- 6-digit administrator PIN at startup;
+- SH1106 OLED interface in Italian or English;
+- blinking status LED and configurable buzzer, including beeps in the final 5 seconds;
+- user-PIN disarming and optional PN532 NFC authentication;
+- any-authorized-user or all-authorized-users modes;
+- Bluetooth Low Energy timer, configuration, and user administration;
+- LittleFS persistent data with automatic configuration migration;
+- dedicated Android app for login, timer control, configuration, and user management.
 
-## Quick browser installation
+## What's new in v1.9.1
 
-The firmware can be installed without Visual Studio Code and without compiling the project.
+- redesigned NFC flow: during a countdown, the reader selects the user from their card first, then the PIN must belong to that same user;
+- the PN532 listens only when disarming needs it and handles card release, duplicate reads, and reader recovery attempts;
+- countdown completion is processed before any new input, so it cannot be disarmed at the instant it expires;
+- clear invalid-duration feedback and a non-blocking user greeting while entering a PIN;
+- reliability fixes for BLE administrator login and app status updates;
+- separate I²C buses for the OLED and PN532, avoiding electrical conflicts.
 
-Installer page:
+## Hardware and pinout
 
-https://maydayalaska.github.io/Open-Airsoft-Countdown/
+| Component | Model / type | GPIO connections |
+|---|---|---|
+| Microcontroller | ESP32-S3-DevKitC-1 | — |
+| Display | SH1106 I²C OLED, 128×64 | SDA 8, SCL 9 |
+| Optional NFC reader | PN532 I²C | SDA 1, SCL 2, IRQ 10 |
+| Keypad | 4×4 matrix | R1 18, R2 17, R3 16, R4 15; C1 7, C2 6, C3 5, C4 4 |
+| Buzzer | Active buzzer | 21 |
+| LED | Status LED | 14 |
 
-Requirements:
+Connect OLED and PN532 power and ground to `3V3` and `GND` respectively. They use separate I²C controllers; do not connect the PN532 bus to the OLED pins 8/9.
 
-- computer with a Web Serial compatible browser;
-- USB data cable;
-- ESP32-S3 board connected to the computer.
+## Keypad operation
 
-## Current features
+1. Wait for the startup screen, enter the 6-digit administrator PIN, and press `#`.
+2. Enter the duration in `HHMMSS`—for example, `001530` for 15 minutes 30 seconds—then press `#`.
+3. During the countdown, enter an authorized user's PIN and press `#`.
+4. With `rfid=true`, present that user's NFC card first, enter their PIN, and confirm with `#`.
+5. A valid authentication stops the timer. If multiple users are required, it stops once all of them have authenticated.
 
-- countdown input in `HHMMSS` format;
-- administrator PIN required at startup;
-- 4×4 keypad control;
-- SH1106 128×64 OLED display;
-- Italian or English display interface;
-- continuous remaining-time and error display;
-- configurable buzzer;
-- status LED blinking during the countdown;
-- user authentication through PIN;
-- PIN + NFC authentication when `rfid` is enabled;
-- authorized users selected by ID;
-- any-user or all-users authentication modes;
-- personalized 2-second greeting after authentication;
-- configurable penalty after the maximum error count;
-- configuration and users stored in LittleFS;
-- complete administrative control over BLE;
-- dedicated Android application;
-- automatic migration of older `config.json` files with missing fields;
-- automatic default-user creation when `users.json` is empty.
+`*` deletes the last digit while entering data. When the countdown finishes naturally, press `#` to return to timer setup.
 
-## Firmware v1.8 changes
+## Configuration and users
 
-- separate I²C buses for the OLED and PN532;
-- OLED unchanged on SDA GPIO8 and SCL GPIO9;
-- PN532 moved to SDA GPIO1 and SCL GPIO2;
-- status LED moved from GPIO2 to GPIO14 to avoid the SCL conflict;
-- PN532 initialized on the ESP32-S3 secondary I²C controller through `TwoWire(1)`.
-
-## Hardware
-
-| Component | Model / type |
-|---|---|
-| Microcontroller | ESP32-S3-DevKitC-1 |
-| Display | SH1106 128×64 I²C OLED |
-| Keypad | 4×4 matrix |
-| NFC reader | PN532 I²C |
-| Buzzer | Active buzzer |
-| LED | Status LED |
-| Data storage | Internal ESP32-S3 LittleFS |
-| Remote control | Bluetooth Low Energy |
-
-## Current pinout
-
-| Function | GPIO |
-|---|---:|
-| OLED I²C SDA | 8 |
-| OLED I²C SCL | 9 |
-| PN532 I²C SDA | 1 |
-| PN532 I²C SCL | 2 |
-| PN532 IRQ | 10 |
-| Keypad R1 | 18 |
-| Keypad R2 | 17 |
-| Keypad R3 | 16 |
-| Keypad R4 | 15 |
-| Keypad C1 | 7 |
-| Keypad C2 | 6 |
-| Keypad C3 | 5 |
-| Keypad C4 | 4 |
-| Active buzzer | 21 |
-| Status LED | 14 |
-
-The OLED and PN532 now use separate I²C buses. The OLED remains on GPIO 8/9, while the PN532 uses GPIO 1/2 through the `TwoWire(1)` controller.
-
-## Main wiring
-
-### SH1106 OLED
-
-```text
-OLED GND  -> ESP32 GND
-OLED VCC  -> ESP32 3V3
-OLED SDA  -> ESP32 GPIO8
-OLED SCL  -> ESP32 GPIO9
-```
-
-### PN532
-
-```text
-PN532 GND    -> ESP32 GND
-PN532 VCC    -> ESP32 3V3
-PN532 SDA    -> ESP32 GPIO1
-PN532 SCL    -> ESP32 GPIO2
-PN532 IRQ    -> ESP32 GPIO10
-
-```
-
-### 4×4 keypad
-
-```text
-R1 -> GPIO18
-R2 -> GPIO17
-R3 -> GPIO16
-R4 -> GPIO15
-C1 -> GPIO7
-C2 -> GPIO6
-C3 -> GPIO5
-C4 -> GPIO4
-```
-
-### Buzzer and LED
-
-```text
-Active buzzer -> GPIO21
-Status LED    -> GPIO14
-```
-
-## Operating flow
-
-1. The startup screen is displayed for 3 seconds.
-2. The device requests the 6-digit administrator PIN.
-3. After login, it requests a duration in `HHMMSS` format.
-4. Pressing `#` starts the timer.
-5. During the countdown, enter the PIN of an authorized user.
-6. When `rfid=true`, the same user’s NFC card must also be read before confirmation.
-7. Pressing `#` validates every enabled requirement.
-8. After successful authentication, the display shows:
-
-```text
-HELLO
-UserName
-```
-
-for 2 seconds.
-
-The administrator PIN is not used for keypad disarming. It is used for startup access and BLE administrator login.
-
-## Configuration
-
-Settings are stored in the LittleFS file:
-
-```text
-/config.json
-```
-
-Current configuration:
+Settings are stored in LittleFS at `/config.json`:
 
 ```json
 {
@@ -650,209 +239,49 @@ Current configuration:
 
 | Field | Description |
 |---|---|
-| `adminPin` | Administrator PIN containing exactly 6 digits |
-| `bleName` | Bluetooth Low Energy device name |
-| `language` | Display language: `it` or `en` |
-| `authorizedUserIds` | IDs of users authorized to disarm |
-| `soundEnabled` | Enables or disables every buzzer sound |
-| `rfid` | Also requires the NFC card assigned to the same user |
-| `fingerprint` | Reserved field for the fingerprint reader |
-| `maxErrorCount` | Maximum error count, from 1 to 10 |
+| `adminPin` | Exactly 6-digit administrator PIN |
+| `bleName` | BLE device name |
+| `language` | `it` or `en` |
+| `authorizedUserIds` | Users allowed to disarm |
+| `soundEnabled` | Enables all buzzer sounds |
+| `rfid` | Requires the NFC card belonging to the PIN user |
+| `fingerprint` | Reserved field: fingerprint hardware is not implemented yet |
+| `maxErrorCount` | Maximum errors, from 1 to 10 |
 | `errorCountdownSeconds` | Penalty duration, from 0 to 3600 seconds |
 
-### Language
+For `authorizedUserIds`, use `1;2;3` when any listed user is enough; use `1,2,3` when every listed user must authenticate, in any order (up to four). Separators cannot be mixed and every ID must exist.
+
+After `maxErrorCount` errors, disarming is locked. If `errorCountdownSeconds` is greater than zero, the remaining time is reduced to that value after the alarm screen; `0` disables only the forced time reduction.
+
+Users are stored in `/users.json`. When it is missing or empty, this initial user is created:
 
 ```json
-"language": "en"
+[{ "id": 1, "name": "Default (delete)", "uid": "00000000", "pin": "000000" }]
 ```
 
-Available values:
+Replace it as soon as possible and update `authorizedUserIds`. Each user has a unique ID, a name up to 32 characters, a 6-digit PIN, and a unique hexadecimal NFC UID up to 32 characters.
 
-- `it` — Italian;
-- `en` — English.
+> Do not set `fingerprint` to `true`: until its module is implemented, keypad disarming cannot be completed.
 
-### Authorized users
+## Bluetooth Low Energy and Android app
 
-Using semicolons:
-
-```json
-"authorizedUserIds": "1;2;3"
-```
-
-authentication from **any one** of the listed users is sufficient.
-
-Using commas:
-
-```json
-"authorizedUserIds": "1,2,3"
-```
-
-**all** listed users must authenticate, in any order. A maximum of 4 users is supported in this mode.
-
-Rules:
-
-- only numbers, commas, and semicolons are accepted;
-- commas and semicolons cannot be mixed;
-- every ID must exist in `users.json`;
-- ID `0` is invalid;
-- an invalid configuration is replaced with the default value `"1"`.
-
-### Error penalty
-
-When `maxErrorCount` is reached, the display shows for 2 seconds:
-
-```text
-TOO MANY ERRORS
-ALARM
-```
-
-The timer is internally set to:
-
-```text
-errorCountdownSeconds + 2
-```
-
-The additional 2 seconds compensate for the alarm screen duration. After the message ends, the visible time matches the configured value.
-
-With:
-
-```json
-"errorCountdownSeconds": 0
-```
-
-forced timer reduction is disabled. Disarming still remains locked after the maximum error count.
-
-### Fingerprint authentication
-
-The `fingerprint` field is already part of the configuration, but the fingerprint reader is **not implemented yet** in the current firmware.
-
-Do not set:
-
-```json
-"fingerprint": true
-```
-
-until the corresponding module is supported, because keypad disarming cannot be completed.
-
-## Users
-
-Users are stored in:
-
-```text
-/users.json
-```
-
-If `users.json` does not exist or contains no users, the firmware automatically creates a default user:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Default (delete)",
-    "uid": "00000000",
-    "pin": "000000"
-  }
-]
-```
-
-This user only exists to allow the first boot with the default `authorizedUserIds = "1"` configuration. It can be deleted after creating a new user and updating the authorized-user configuration.
-
-Example real user:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Carlo",
-    "uid": "04A1B2C3D4",
-    "pin": "123456"
-  }
-]
-```
-
-Main rules:
-
-- up to 100 users;
-- unique internal ID;
-- name up to 32 characters;
-- PIN containing exactly 6 digits;
-- hexadecimal NFC UID up to 32 characters;
-- every UID must be unique;
-- after deletion, the smallest available ID may be reused.
-
-The PIN is always required. When `rfid=true`, PIN and UID must belong to the same user.
-
-## Android application
-
-The Android app can:
-
-- scan for and connect to the device over BLE;
-- perform administrator login;
-- set, start, stop, and reset the timer;
-- read live status;
-- edit `config.json`;
-- select the firmware language;
-- configure authorized users;
-- add, edit, and delete users.
-
-Repository:
-
-https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App
-
-## BLE protocol
-
-Main commands:
+The [Android app](https://github.com/MaydayAlaska/Open-Airsoft-Countdown-Android-App) can scan and connect to the device, authenticate an administrator, control the timer, read its status, and edit configuration and users. The BLE login session closes on disconnection.
 
 | Command | Function |
 |---|---|
 | `PING` | Tests communication |
-| `LOGIN:<pin>` | Administrator login |
-| `LOGOUT` | Ends the session |
-| `STATUS` | Requests timer status |
-| `SETTIME:<HHMMSS>` | Sets the timer |
-| `START` | Starts the countdown |
-| `STOP` | Stops the countdown |
-| `RESET` | Resets the timer |
-| `GETCONFIG` | Reads configuration |
-| `SETCONFIG:...` | Saves configuration |
-| `GETUSERS` | Reads users |
-| `ADDUSER:...` | Adds a user |
-| `UPDATEUSER:...` | Updates a user |
-| `DELUSER:<id>` | Deletes a user |
+| `LOGIN:<pin>` / `LOGOUT` | Opens or closes the administrator session |
+| `STATUS` | Reads timer status |
+| `SETTIME:<HHMMSS>` | Sets the duration |
+| `START`, `STOP`, `RESET` | Control the timer |
+| `GETCONFIG`, `SETCONFIG:...` | Read and save configuration |
+| `GETUSERS`, `ADDUSER:...`, `UPDATEUSER:...`, `DELUSER:<id>` | Manage users |
 
-`PING`, `STATUS`, `LOGIN`, and `LOGOUT` are handled directly. Every other administrative command requires a valid BLE login.
+`PING`, `STATUS`, `LOGIN`, and `LOGOUT` are always available; all other commands require a valid BLE login. Configuration and users cannot be modified while the timer is running.
 
 ## Building with PlatformIO
 
-### Software requirements
-
-- Visual Studio Code;
-- PlatformIO IDE extension;
-- Arduino framework for ESP32;
-- USB data cable.
-
-### Libraries
-
-Dependencies are defined in `platformio.ini`:
-
-- U8g2;
-- NimBLE-Arduino;
-- Adafruit PN532;
-- Keypad;
-- ArduinoJson.
-
-### Build and upload
-
-Using PlatformIO:
-
-1. open the repository folder;
-2. connect the ESP32-S3;
-3. select the `esp32-s3-devkitc-1` environment;
-4. run **Build**;
-5. run **Upload**;
-6. open the serial monitor at `115200` baud.
-
-Using a terminal:
+Requirements: Visual Studio Code with PlatformIO IDE, the Arduino framework for ESP32, and a USB data cable.
 
 ```bash
 pio run
@@ -860,49 +289,22 @@ pio run --target upload
 pio device monitor
 ```
 
-LittleFS is initialized automatically. When `config.json` or `users.json` is missing, the firmware creates it with default values.
+The environment is `esp32-s3-devkitc-1`, with serial monitor at `115200` baud. Dependencies (`U8g2`, `NimBLE-Arduino`, `Adafruit PN532`, `Keypad`, and `ArduinoJson`) are listed in [platformio.ini](platformio.ini). The post-build script also produces the merged firmware for the Web Installer.
 
-## Main project structure
+## Project structure
 
 ```text
 data/       Initial LittleFS files
+docs/       Web Installer and published firmware
 include/    C++ headers
-src/        Firmware implementation
-lib/        Local libraries
-test/       Tests
-platformio.ini
-README.md
-LICENSE
+src/        Firmware
+tools/      Build scripts
 ```
 
-## Reporting bugs
+## Issues, contributions, and license
 
-Use the **Issues** section of this repository to report problems or suggest improvements.
+Open an Issue with firmware version, hardware, relevant configuration, reproduction steps, and serial logs. Contributions and Pull Requests are welcome.
 
-Please include when possible:
+This project is released under the [GNU Affero General Public License v3.0](LICENSE).
 
-- firmware version;
-- hardware configuration;
-- relevant `config.json` content;
-- steps required to reproduce the problem;
-- serial monitor logs;
-- display photos or screenshots.
-
-## Support the project
-
-You can support Open Airsoft Countdown by:
-
-- giving the GitHub repositories a Star;
-- leaving a Like, saving the project, and using a Boost on MakerWorld;
-- reporting bugs through GitHub Issues;
-- contributing code or documentation;
-- making a PayPal donation.
-
-- MakerWorld: https://makerworld.com/it/@maydayalaska
-- PayPal: https://paypal.me/lorisgennarini
-
-## License
-
-This project is released under the **GNU Affero General Public License v3.0**.
-
-See the [LICENSE](LICENSE) file for details.
+You can support it with a GitHub Star, a Like/Save/Boost on [MakerWorld](https://makerworld.com/it/@maydayalaska), or a [PayPal donation](https://paypal.me/lorisgennarini).
