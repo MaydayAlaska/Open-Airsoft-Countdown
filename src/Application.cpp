@@ -282,10 +282,7 @@ void Application::handleSetTimer(char key)
 		if (duration == 0)
 		{
 			m_timerInput = "";
-			m_display.showMessage(
-				"TIMER",
-				isEnglishLanguage() ? "INVALID" : "NON VALIDO",
-				0,
+			m_display.showInvalidTimer(
 				m_errorCount,
 				m_storage.getConfig().maxErrorCount
 			);
@@ -363,7 +360,9 @@ void Application::handleRunning(char key)
 		{
 			Serial.println("Wrong or incomplete authorized-user authentication.");
 
-			clearCurrentDisarmAttempt();
+			// Keep the selected NFC user so the PIN can be corrected without
+			// presenting the same tag again.
+			m_disarmPinInput = "";
 
 			if (m_errorCount < maxErrorCount)
 			{

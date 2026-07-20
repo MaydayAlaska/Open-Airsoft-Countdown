@@ -147,6 +147,22 @@ void Display::showMessage(const String &line1, const String &line2, uint32_t rem
 	m_display.sendBuffer();
 }
 
+void Display::showInvalidTimer(uint8_t errorCount, uint32_t maxErrorCount)
+{
+	m_display.clearBuffer();
+
+	drawHeader(0, errorCount, maxErrorCount, true);
+
+	m_display.setFont(u8g2_font_ncenB08_tr);
+	drawCentered("TIMER", 30);
+	drawCentered(isEnglish() ? "INVALID" : "NON VALIDO", 48);
+
+	m_display.setFont(u8g2_font_5x8_tr);
+	drawCentered(isEnglish() ? "* back" : "* indietro", 63);
+
+	m_display.sendBuffer();
+}
+
 void Display::showPinError(uint32_t remainingSeconds, uint8_t errorCount, uint32_t maxErrorCount)
 {
 	m_display.clearBuffer();
