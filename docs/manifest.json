@@ -1,6 +1,6 @@
 {
   "name": "Open Airsoft Countdown",
-  "version": "1.8",
+  "version": "1.9.1",
   "new_install_prompt_erase": true,
   "new_install_improv_wait_time": 0,
   "builds": [

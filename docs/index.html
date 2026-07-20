@@ -301,7 +301,7 @@
 			</div>
 		</section>
 
-		<footer data-i18n="footer">Open Airsoft Countdown · Firmware v1.8 · ESP32-S3</footer>
+		<footer>Open Airsoft Countdown · Firmware <span id="firmware-version" aria-live="polite">—</span></footer>
 	</main>
 
 	<script>
@@ -321,8 +321,7 @@
 				step5: "Al primo avvio usa il PIN amministratore predefinito <strong>000000</strong>.",
 				warning: "Durante un aggiornamento, scegli di mantenere i dati per conservare configurazione e utenti. Esegui invece una cancellazione completa per una nuova installazione pulita.",
 				firmwareRepo: "Repository firmware",
-				androidApp: "App Android",
-				footer: "Open Airsoft Countdown · Firmware v1.8 · ESP32-S3"
+				androidApp: "App Android"
 			},
 			en: {
 				title: "Open Airsoft Countdown - Web Installer",
@@ -339,8 +338,7 @@
 				step5: "On first boot, use the default administrator PIN <strong>000000</strong>.",
 				warning: "During an update, choose to keep existing data to preserve configuration and users. Choose a full erase only for a clean new installation.",
 				firmwareRepo: "Firmware repository",
-				androidApp: "Android app",
-				footer: "Open Airsoft Countdown · Firmware v1.8 · ESP32-S3"
+				androidApp: "Android app"
 			}
 		};
 
@@ -368,6 +366,26 @@
 			localStorage.setItem("openAirsoftCountdownLanguage", selectedLanguage);
 		}
 
+		async function loadFirmwareVersion() {
+			const versionElement = document.getElementById("firmware-version");
+
+			try {
+				const response = await fetch("manifest.json", { cache: "no-store" });
+				if (!response.ok) {
+					throw new Error(`Unable to load the manifest: ${response.status}`);
+				}
+
+				const manifest = await response.json();
+				if (typeof manifest.version !== "string" || !manifest.version.trim()) {
+					throw new Error("The manifest does not contain a valid version.");
+				}
+
+				versionElement.textContent = `v${manifest.version.trim().replace(/^v/i, "")}`;
+			} catch (error) {
+				console.warn("Firmware version unavailable.", error);
+			}
+		}
+
 		document.querySelectorAll("[data-language]").forEach((button) => {
 			button.addEventListener("click", () => {
 				setLanguage(button.getAttribute("data-language"));
@@ -378,6 +396,7 @@
 		const browserLanguage = navigator.language && navigator.language.toLowerCase().startsWith("en") ? "en" : "it";
 
 		setLanguage(savedLanguage || browserLanguage);
+		loadFirmwareVersion();
 	</script>
 </body>
 </html>
