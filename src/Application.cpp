@@ -232,12 +232,7 @@ void Application::handleAdminPin(char key)
 	{
 		if (m_adminPinInput == m_storage.getConfig().adminPin)
 		{
-			m_adminPinInput = "";
-			m_errorCount = 0;
-
-			m_mode = Mode::SetTimer;
-			m_timerInput = "";
-			m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
+			completeAdminAuthentication();
 
 			sendBleStatus();
 		}
@@ -255,6 +250,15 @@ void Application::handleAdminPin(char key)
 		m_adminPinInput += key;
 		m_display.showAdminPin(m_adminPinInput.length(), 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 	}
+}
+
+void Application::completeAdminAuthentication()
+{
+	m_adminPinInput = "";
+	m_errorCount = 0;
+	m_mode = Mode::SetTimer;
+	m_timerInput = "";
+	m_display.showSetTimer(m_timerInput, 0, m_errorCount, m_storage.getConfig().maxErrorCount);
 }
 
 void Application::handleSetTimer(char key)
@@ -993,6 +997,12 @@ void Application::handleBleCommand(const String &command)
 		if (pin == m_storage.getConfig().adminPin)
 		{
 			m_bleLoggedIn = true;
+
+			// Mirror the keypad flow when the device is waiting for the admin PIN.
+			if (m_mode == Mode::EnterAdminPin)
+			{
+				completeAdminAuthentication();
+			}
 			m_bleManager.sendResponse("OK:LOGIN");
 			sendBleStatus();
 		}

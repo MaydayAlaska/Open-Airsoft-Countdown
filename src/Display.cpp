@@ -38,7 +38,7 @@ bool Display::begin()
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	drawCentered("Open Airsoft", 14);
 	drawCentered("Countdown", 29);
-	drawCentered("v1.9", 43);
+	drawCentered("v1.9.1", 43);
 
 	m_display.setFont(u8g2_font_5x8_tr);
 	drawCentered("maydayalaska - GitHub", 62);
