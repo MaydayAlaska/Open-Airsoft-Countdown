@@ -10,7 +10,7 @@ void setup()
 	Serial.println();
 	Serial.println("=========================================");
 	Serial.println("Open Airsoft Countdown - GitHub");
-	Serial.println("v1.9");
+	Serial.println("v1.9.1");
 	Serial.println("=========================================");
 
 	if (!app.begin())
