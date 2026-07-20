@@ -105,7 +105,6 @@ Requisiti:
 | PN532 I²C SDA | 1 |
 | PN532 I²C SCL | 2 |
 | PN532 IRQ | 10 |
-| PN532 RESET | 11 |
 | Tastierino R1 | 18 |
 | Tastierino R2 | 17 |
 | Tastierino R3 | 16 |
@@ -138,7 +137,7 @@ PN532 VCC    -> ESP32 3V3
 PN532 SDA    -> ESP32 GPIO1
 PN532 SCL    -> ESP32 GPIO2
 PN532 IRQ    -> ESP32 GPIO10
-PN532 RESET  -> ESP32 GPIO11
+
 ```
 
 ### Tastierino 4×4
@@ -550,7 +549,6 @@ Requirements:
 | PN532 I²C SDA | 1 |
 | PN532 I²C SCL | 2 |
 | PN532 IRQ | 10 |
-| PN532 RESET | 11 |
 | Keypad R1 | 18 |
 | Keypad R2 | 17 |
 | Keypad R3 | 16 |
@@ -583,7 +581,7 @@ PN532 VCC    -> ESP32 3V3
 PN532 SDA    -> ESP32 GPIO1
 PN532 SCL    -> ESP32 GPIO2
 PN532 IRQ    -> ESP32 GPIO10
-PN532 RESET  -> ESP32 GPIO11
+
 ```
 
 ### 4×4 keypad
