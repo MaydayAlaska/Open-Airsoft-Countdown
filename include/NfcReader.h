@@ -22,19 +22,14 @@ private:
 	static constexpr uint8_t I2cSdaPin = 1;
 	static constexpr uint8_t I2cSclPin = 2;
 	static constexpr uint8_t Pn532IrqPin = 10;
-<<<<<<< HEAD
-	static constexpr uint8_t Pn532ResetPin = 11;
+	// PN532 V3 RSTO is a module output, so GPIO11 is deliberately unconnected.
+	// The Adafruit I2C constructor still requires a reset GPIO argument.
+	static constexpr uint8_t UnusedLibraryResetPin = 11;
 	static constexpr uint32_t ResetSettleMs = 10;
 	static constexpr uint32_t RecoveryRetryMs = 5000;
 	static constexpr uint32_t DetectionWatchdogMs = 30000;
 	static constexpr uint32_t UidReleaseDelayMs = 250;
 	static constexpr uint32_t RestartDelayMs = 2000;
-=======
-	// The Adafruit library requires a reset GPIO argument. On PN532 V3 modules
-	// RSTO is a module output, so this GPIO is deliberately left unconnected.
-	static constexpr uint8_t UnusedLibraryResetPin = 11;
-	static constexpr uint32_t RestartDelayMs = 500;
->>>>>>> origin/main
 
 	void resetForRearm();
 	void configureAndStartListening();
