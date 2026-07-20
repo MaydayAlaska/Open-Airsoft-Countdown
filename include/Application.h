@@ -26,6 +26,7 @@ private:
 	};
 
 	void handleAdminPin(char key);
+	void completeAdminAuthentication();
 	void handleSetTimer(char key);
 	void handleRunning(char key);
 	void handleStopped(char key);
