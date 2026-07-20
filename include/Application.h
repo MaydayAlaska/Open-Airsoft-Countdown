@@ -29,6 +29,7 @@ private:
 	void handleSetTimer(char key);
 	void handleRunning(char key);
 	void handleStopped(char key);
+	void finishCountdown();
 
 	void showPinErrorMessage(uint32_t remainingSeconds);
 	void updatePinErrorMessage();
@@ -39,6 +40,7 @@ private:
 	void restoreDisplayAfterMaximumError();
 
 	bool loadAuthorizedUsers();
+	void clearCurrentDisarmAttempt();
 	void resetDisarmAuthentication();
 	void selectUserFromNfc(const String &uid);
 	bool processDisarmAttempt(uint32_t remainingSeconds);
@@ -110,6 +112,7 @@ private:
 	bool m_userGreetingMessageActive = false;
 	uint32_t m_userGreetingMessageStartedAt = 0;
 	bool m_stopAfterUserGreeting = false;
+	String m_greetingUserName;
 
 	uint32_t m_lastDisplayedSeconds = 0xFFFFFFFF;
 

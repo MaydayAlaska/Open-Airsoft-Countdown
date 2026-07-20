@@ -89,7 +89,13 @@ void Display::showDisarmPin(uint8_t enteredDigits, uint32_t remainingSeconds, ui
 	drawCentered(mask.c_str(), 48);
 
 	m_display.setFont(u8g2_font_5x8_tr);
-	m_display.drawStr(8, 63, isEnglish() ? "# confirm  * delete" : "# conferma  * cancella");
+	m_display.drawStr(
+		8,
+		63,
+		enteredDigits == 0
+			? (isEnglish() ? "# confirm  * cancel" : "# conferma  * annulla")
+			: (isEnglish() ? "# confirm  * delete" : "# conferma  * cancella")
+	);
 
 	m_display.sendBuffer();
 }
@@ -137,6 +143,22 @@ void Display::showMessage(const String &line1, const String &line2, uint32_t rem
 	m_display.setFont(u8g2_font_ncenB08_tr);
 	drawCentered(line1.c_str(), 30);
 	drawCentered(line2.c_str(), 48);
+
+	m_display.sendBuffer();
+}
+
+void Display::showInvalidTimer(uint8_t errorCount, uint32_t maxErrorCount)
+{
+	m_display.clearBuffer();
+
+	drawHeader(0, errorCount, maxErrorCount, true);
+
+	m_display.setFont(u8g2_font_ncenB08_tr);
+	drawCentered("TIMER", 30);
+	drawCentered(isEnglish() ? "INVALID" : "NON VALIDO", 48);
+
+	m_display.setFont(u8g2_font_5x8_tr);
+	drawCentered(isEnglish() ? "* back" : "* indietro", 63);
 
 	m_display.sendBuffer();
 }

@@ -80,8 +80,42 @@ bool Application::begin()
 void Application::update()
 {
 	m_keypad.update();
+	m_timer.update();
+	m_buzzer.update();
 
-	if (m_storage.getConfig().rfid)
+	const bool secondTick = m_timer.consumeSecondTick();
+
+	if (
+		m_mode == Mode::Running &&
+		secondTick &&
+		m_timer.getRemainingSeconds() > 0 &&
+		m_timer.getRemainingSeconds() <= 5 &&
+		m_storage.getConfig().soundEnabled
+	)
+	{
+		m_buzzer.beep(80);
+	}
+
+	const bool countdownFinishedThisUpdate =
+		m_mode == Mode::Running && m_timer.isFinished();
+
+	if (countdownFinishedThisUpdate)
+	{
+		finishCountdown();
+	}
+
+	const bool nfcEnabled =
+		m_storage.getConfig().rfid &&
+		m_mode == Mode::Running &&
+		m_timer.isRunning() &&
+		m_selectedUserId == 0 &&
+		m_errorCount < m_storage.getConfig().maxErrorCount &&
+		!m_pinErrorMessageActive &&
+		!m_maximumErrorMessageActive;
+
+	m_nfcReader.setEnabled(nfcEnabled);
+
+	if (nfcEnabled)
 	{
 		m_nfcReader.update();
 
@@ -90,17 +124,10 @@ void Application::update()
 			Serial.print("Last NFC UID received by application: ");
 			Serial.println(m_nfcReader.getLastUid());
 
-			if (m_mode == Mode::Running)
-			{
-				selectUserFromNfc(m_nfcReader.getLastUid());
-			}
-
+			selectUserFromNfc(m_nfcReader.getLastUid());
 			m_nfcReader.clearNewUid();
 		}
 	}
-
-	m_timer.update();
-	m_buzzer.update();
 
 	if (m_bleManager.consumeDisconnected())
 	{
@@ -109,7 +136,8 @@ void Application::update()
 		Serial.println("BLE admin session closed.");
 	}
 
-	const char key = m_keypad.getKey();
+	const char pendingKey = m_keypad.getKey();
+	const char key = countdownFinishedThisUpdate ? '\0' : pendingKey;
 
 	if (m_pinErrorMessageActive)
 	{
@@ -121,7 +149,16 @@ void Application::update()
 	}
 	else if (m_userGreetingMessageActive)
 	{
-		updateUserGreetingMessage();
+		if (key != '\0' && m_mode == Mode::Running)
+		{
+			m_userGreetingMessageActive = false;
+			restoreDisplayAfterUserGreeting();
+			handleRunning(key);
+		}
+		else
+		{
+			updateUserGreetingMessage();
+		}
 	}
 	else
 	{
@@ -245,10 +282,7 @@ void Application::handleSetTimer(char key)
 		if (duration == 0)
 		{
 			m_timerInput = "";
-			m_display.showMessage(
-				"TIMER",
-				isEnglishLanguage() ? "INVALID" : "NON VALIDO",
-				0,
+			m_display.showInvalidTimer(
 				m_errorCount,
 				m_storage.getConfig().maxErrorCount
 			);
@@ -280,29 +314,9 @@ void Application::handleRunning(char key)
 	const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
 	const uint32_t maxErrorCount = m_storage.getConfig().maxErrorCount;
 
-	const bool secondTick = m_timer.consumeSecondTick();
-
-	if (secondTick)
-	{
-		if (remainingSeconds > 0 && remainingSeconds <= 5 && m_storage.getConfig().soundEnabled)
-		{
-			m_buzzer.beep(80);
-		}
-	}
-
 	if (m_timer.isFinished())
 	{
-		m_mode = Mode::Finished;
-
-		if (m_storage.getConfig().soundEnabled)
-		{
-			m_buzzer.beep(3000);
-		}
-
-		m_display.showFinished(m_errorCount, maxErrorCount);
-
-		sendBleStatus();
-
+		finishCountdown();
 		return;
 	}
 
@@ -325,6 +339,12 @@ void Application::handleRunning(char key)
 			m_lastDisplayedSeconds = remainingSeconds;
 			m_display.showDisarmPin(m_disarmPinInput.length(), remainingSeconds, m_errorCount, maxErrorCount);
 		}
+		else if (m_selectedUserId != 0)
+		{
+			clearCurrentDisarmAttempt();
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showCountdown(remainingSeconds, m_errorCount, maxErrorCount);
+		}
 		else
 		{
 			m_lastDisplayedSeconds = remainingSeconds;
@@ -340,6 +360,8 @@ void Application::handleRunning(char key)
 		{
 			Serial.println("Wrong or incomplete authorized-user authentication.");
 
+			// Keep the selected NFC user so the PIN can be corrected without
+			// presenting the same tag again.
 			m_disarmPinInput = "";
 
 			if (m_errorCount < maxErrorCount)
@@ -404,6 +426,37 @@ void Application::handleRunning(char key)
 	}
 }
 
+void Application::finishCountdown()
+{
+	if (m_mode != Mode::Running || !m_timer.isFinished())
+	{
+		return;
+	}
+
+	m_mode = Mode::Finished;
+	m_pinErrorMessageActive = false;
+	m_maximumErrorMessageActive = false;
+	m_userGreetingMessageActive = false;
+	m_stopAfterUserGreeting = false;
+	m_greetingUserName = "";
+	m_disarmPinInput = "";
+	m_disarmUidInput = "";
+	m_selectedUserId = 0;
+	m_lastDisplayedSeconds = 0;
+
+	if (m_storage.getConfig().soundEnabled)
+	{
+		m_buzzer.beep(3000);
+	}
+
+	m_display.showFinished(
+		m_errorCount,
+		m_storage.getConfig().maxErrorCount
+	);
+
+	sendBleStatus();
+}
+
 void Application::handleStopped(char key)
 {
 	(void)key;
@@ -422,6 +475,7 @@ void Application::showPinErrorMessage(uint32_t remainingSeconds)
 {
 	m_pinErrorMessageActive = true;
 	m_pinErrorMessageStartedAt = millis();
+	m_lastDisplayedSeconds = remainingSeconds;
 
 	m_display.showPinError(
 		remainingSeconds,
@@ -439,6 +493,18 @@ void Application::updatePinErrorMessage()
 
 	if (millis() - m_pinErrorMessageStartedAt < PinErrorMessageDurationMs)
 	{
+		const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+
+		if (m_mode == Mode::Running && remainingSeconds != m_lastDisplayedSeconds)
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showPinError(
+				remainingSeconds,
+				m_errorCount,
+				m_storage.getConfig().maxErrorCount
+			);
+		}
+
 		return;
 	}
 
@@ -493,6 +559,7 @@ void Application::showMaximumErrorMessage(uint32_t remainingSeconds)
 {
 	m_maximumErrorMessageActive = true;
 	m_maximumErrorMessageStartedAt = millis();
+	m_lastDisplayedSeconds = remainingSeconds;
 
 	m_display.showMaximumError(
 		remainingSeconds,
@@ -510,6 +577,18 @@ void Application::updateMaximumErrorMessage()
 
 	if (millis() - m_maximumErrorMessageStartedAt < MaximumErrorMessageDurationMs)
 	{
+		const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+
+		if (m_mode == Mode::Running && remainingSeconds != m_lastDisplayedSeconds)
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showMaximumError(
+				remainingSeconds,
+				m_errorCount,
+				m_storage.getConfig().maxErrorCount
+			);
+		}
+
 		return;
 	}
 
@@ -594,22 +673,32 @@ bool Application::loadAuthorizedUsers()
 
 void Application::resetDisarmAuthentication()
 {
-	m_disarmPinInput = "";
-	m_disarmUidInput = "";
-	m_selectedUserId = 0;
+	clearCurrentDisarmAttempt();
+	m_nfcReader.resetSession();
 
 	for (uint8_t i = 0; i < MaxRequiredUsers; i++)
 	{
 		m_authenticatedUsers[i] = false;
 	}
+}
 
+void Application::clearCurrentDisarmAttempt()
+{
+	m_disarmPinInput = "";
+	m_disarmUidInput = "";
+	m_selectedUserId = 0;
 	m_userGreetingMessageActive = false;
 	m_stopAfterUserGreeting = false;
+	m_greetingUserName = "";
+
+	// Cancel any pending PN532 command now; the main loop will rearm it only
+	// when the countdown is still running and authentication is unlocked.
+	m_nfcReader.setEnabled(false);
 }
 
 void Application::selectUserFromNfc(const String &uid)
 {
-	// A new tag always cancels the PIN and user selected by the previous tag.
+	// Every accepted tag starts a clean PIN attempt for that user.
 	m_disarmPinInput = "";
 	m_disarmUidInput = uid;
 	m_disarmUidInput.trim();
@@ -641,6 +730,7 @@ void Application::selectUserFromNfc(const String &uid)
 	}
 
 	m_selectedUserId = user.id;
+	m_nfcReader.setEnabled(false);
 
 	Serial.print("NFC selected user ID: ");
 	Serial.println(user.id);
@@ -753,9 +843,7 @@ void Application::completeUserAuthentication(const UserRecord &user, uint32_t re
 	const bool authenticationComplete =
 		!m_requireAllUsers || areAllRequiredUsersAuthenticated();
 
-	m_disarmPinInput = "";
-	m_disarmUidInput = "";
-	m_selectedUserId = 0;
+	clearCurrentDisarmAttempt();
 
 	if (authenticationComplete)
 	{
@@ -770,6 +858,8 @@ void Application::showUserGreetingMessage(const UserRecord &user, uint32_t remai
 {
 	m_userGreetingMessageActive = true;
 	m_userGreetingMessageStartedAt = millis();
+	m_greetingUserName = user.name;
+	m_lastDisplayedSeconds = remainingSeconds;
 
 	m_display.showUserGreeting(
 		user.name,
@@ -788,6 +878,19 @@ void Application::updateUserGreetingMessage()
 
 	if (millis() - m_userGreetingMessageStartedAt < UserGreetingMessageDurationMs)
 	{
+		const uint32_t remainingSeconds = m_timer.getRemainingSeconds();
+
+		if (remainingSeconds != m_lastDisplayedSeconds)
+		{
+			m_lastDisplayedSeconds = remainingSeconds;
+			m_display.showUserGreeting(
+				m_greetingUserName,
+				remainingSeconds,
+				m_errorCount,
+				m_storage.getConfig().maxErrorCount
+			);
+		}
+
 		return;
 	}
 
@@ -906,6 +1009,23 @@ void Application::handleBleCommand(const String &command)
 	if (!m_bleLoggedIn)
 	{
 		m_bleManager.sendResponse("ERR:LOGIN_REQUIRED");
+		return;
+	}
+
+	const bool longCommandWhileRunning =
+		m_mode == Mode::Running &&
+		m_timer.isRunning() &&
+		(
+			upperCommand.startsWith("SETCONFIG:") ||
+			upperCommand == "GETUSERS" ||
+			upperCommand.startsWith("ADDUSER:") ||
+			upperCommand.startsWith("UPDATEUSER:") ||
+			upperCommand.startsWith("DELUSER:")
+		);
+
+	if (longCommandWhileRunning)
+	{
+		m_bleManager.sendResponse("ERR:TIMER_RUNNING");
 		return;
 	}
 
