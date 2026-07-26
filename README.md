@@ -34,7 +34,7 @@ Per compilare o caricare da sorgente, consulta [Compilazione con PlatformIO](#co
 - timer countdown impostabile in formato `HHMMSS` tramite tastierino 4×4 o BLE;
 - accesso iniziale protetto da PIN amministratore a 6 cifre;
 - OLED SH1106 con interfaccia in italiano o inglese;
-- LED di stato lampeggiante durante il countdown e buzzer configurabile, compresi i beep negli ultimi 5 secondi;
+- LED di stato lampeggiante durante il countdown e buzzer configurabile con un bip per ogni secondo trascorso;
 - disarmo con PIN utente e, se abilitato, autenticazione NFC con PN532;
 - modalità con uno qualunque o tutti gli utenti autorizzati;
 - gestione di utenti, configurazione e timer da Bluetooth Low Energy;
@@ -180,7 +180,7 @@ For a source build or upload, see [Building with PlatformIO](#building-with-plat
 - `HHMMSS` countdown input through the 4×4 keypad or BLE;
 - 6-digit administrator PIN at startup;
 - SH1106 OLED interface in Italian or English;
-- blinking status LED and configurable buzzer, including beeps in the final 5 seconds;
+- blinking status LED and configurable buzzer with one beep for every elapsed countdown second;
 - user-PIN disarming and optional PN532 NFC authentication;
 - any-authorized-user or all-authorized-users modes;
 - Bluetooth Low Energy timer, configuration, and user administration;
