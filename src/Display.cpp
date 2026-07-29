@@ -6,7 +6,7 @@
 namespace
 {
 	constexpr uint8_t I2cSdaPin = 8;
-	constexpr uint8_t I2cSclPin = 9;
+	constexpr uint8_t I2cSclPin = 3;
 }
 
 Display::Display() :

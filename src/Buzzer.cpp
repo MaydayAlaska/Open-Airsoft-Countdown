@@ -4,8 +4,8 @@ bool Buzzer::begin()
 {
 	Serial.println("Initializing buzzer...");
 
+	digitalWrite(BuzzerPin, BuzzerOffLevel);
 	pinMode(BuzzerPin, OUTPUT);
-	digitalWrite(BuzzerPin, LOW);
 
 	Serial.println("Buzzer initialized.");
 
@@ -23,7 +23,7 @@ void Buzzer::update()
 
 	if (currentMillis - m_startedAt >= m_durationMs)
 	{
-		digitalWrite(BuzzerPin, LOW);
+		digitalWrite(BuzzerPin, BuzzerOffLevel);
 		m_active = false;
 	}
 }
@@ -34,5 +34,5 @@ void Buzzer::beep(uint16_t durationMs)
 	m_durationMs = durationMs;
 	m_active = true;
 
-	digitalWrite(BuzzerPin, HIGH);
+	digitalWrite(BuzzerPin, BuzzerOnLevel);
 }

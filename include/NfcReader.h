@@ -19,9 +19,9 @@ public:
 	void clearNewUid();
 
 private:
-	static constexpr uint8_t I2cSdaPin = 1;
-	static constexpr uint8_t I2cSclPin = 2;
-	static constexpr uint8_t Pn532IrqPin = 10;
+	static constexpr uint8_t I2cSdaPin = 21;
+	static constexpr uint8_t I2cSclPin = 20;
+	static constexpr uint8_t Pn532IrqPin = 47;
 	// PN532 V3 RSTO is a module output, so GPIO11 is deliberately unconnected.
 	// The Adafruit I2C constructor still requires a reset GPIO argument.
 	static constexpr uint8_t UnusedLibraryResetPin = 11;

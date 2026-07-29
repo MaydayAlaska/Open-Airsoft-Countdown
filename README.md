@@ -55,10 +55,10 @@ Per compilare o caricare da sorgente, consulta [Compilazione con PlatformIO](#co
 | Componente | Modello / tipo | Alimentazione | Collegamenti GPIO |
 |---|---|---|---|
 | Microcontrollore | ESP32-S3-DevKitC-1 | Alimentazione scheda tramite USB; pin di uscita `3V3` e `GND` per i moduli | — |
-| Display | OLED SH1106 I²C 128×64 | VCC → `3V3`; GND → `GND` | SDA → GPIO 8; SCL → GPIO 9 |
-| Lettore NFC opzionale | PN532 I²C | VCC → `3V3`; GND → `GND` | SDA → GPIO 1; SCL → GPIO 2; IRQ → GPIO 10 |
+| Display | OLED SH1106 I²C 128×64 | VCC → `3V3`; GND → `GND` | SDA → GPIO 8; SCL → GPIO 3 |
+| Lettore NFC opzionale | PN532 I²C | VCC → `3V3`; GND → `GND` | SDA → GPIO 21; SCL → GPIO 20; IRQ → GPIO 47 |
 | Tastierino | Matrice 4×4 | Non richiesta | R1 → GPIO 18; R2 → GPIO 17; R3 → GPIO 16; R4 → GPIO 15; C1 → GPIO 7; C2 → GPIO 6; C3 → GPIO 5; C4 → GPIO 4 |
-| Buzzer | Buzzer attivo a 3,3 V | `−` → `GND` | `+` → GPIO 21 |
+| Buzzer | Buzzer attivo a 3,3 V | `−` → `GND` | `+` → GPIO 48 |
 | LED | LED di stato | Catodo → `GND` | Anodo → GPIO 14 tramite resistenza da 220–1.000 Ω |
 
 OLED e PN532 usano due controller I²C distinti: non collegare il bus del PN532 ai pin 8/9 dell'OLED. Tutti i componenti devono condividere la stessa massa. Non collegare `5V` a segnali I²C o GPIO dell'ESP32-S3: non sono tolleranti a 5 V.
@@ -201,10 +201,10 @@ For a source build or upload, see [Building with PlatformIO](#building-with-plat
 | Component | Model / type | Power | GPIO connections |
 |---|---|---|---|
 | Microcontroller | ESP32-S3-DevKitC-1 | Power the board over USB; use the `3V3` and `GND` output pins for the modules | — |
-| Display | SH1106 I²C OLED, 128×64 | VCC → `3V3`; GND → `GND` | SDA → GPIO 8; SCL → GPIO 9 |
-| Optional NFC reader | PN532 I²C | VCC → `3V3`; GND → `GND` | SDA → GPIO 1; SCL → GPIO 2; IRQ → GPIO 10 |
+| Display | SH1106 I²C OLED, 128×64 | VCC → `3V3`; GND → `GND` | SDA → GPIO 8; SCL → GPIO 3 |
+| Optional NFC reader | PN532 I²C | VCC → `3V3`; GND → `GND` | SDA → GPIO 21; SCL → GPIO 20; IRQ → GPIO 47 |
 | Keypad | 4×4 matrix | Not required | R1 → GPIO 18; R2 → GPIO 17; R3 → GPIO 16; R4 → GPIO 15; C1 → GPIO 7; C2 → GPIO 6; C3 → GPIO 5; C4 → GPIO 4 |
-| Buzzer | 3.3 V active buzzer | `−` → `GND` | `+` → GPIO 21 |
+| Buzzer | 3.3 V active buzzer | `−` → `GND` | `+` → GPIO 48 |
 | LED | Status LED | Cathode → `GND` | Anode → GPIO 14 through a 220–1,000 Ω resistor |
 
 OLED and PN532 use separate I²C controllers; do not connect the PN532 bus to the OLED pins 8/9. All components must share the same ground. Do not connect `5V` to ESP32-S3 I²C or GPIO signals: they are not 5 V tolerant.

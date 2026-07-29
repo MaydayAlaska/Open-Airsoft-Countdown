@@ -9,8 +9,8 @@ NfcReader::NfcReader() :
 bool NfcReader::begin()
 {
 	Serial.println("Initializing PN532 NFC reader...");
-	Serial.println("PN532 I2C pins: SDA=GPIO1, SCL=GPIO2");
-	Serial.println("PN532 IRQ pin: GPIO10");
+	Serial.println("PN532 I2C pins: SDA=GPIO21, SCL=GPIO20");
+	Serial.println("PN532 IRQ pin: GPIO47");
 	Serial.println("PN532 RSTO: leave disconnected (it is a module output).");
 
 	m_available = false;
