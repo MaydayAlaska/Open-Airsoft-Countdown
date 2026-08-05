@@ -12,6 +12,11 @@ namespace
 
 bool Application::begin()
 {
+	if (!m_buzzer.begin())
+	{
+		return false;
+	}
+
 	if (!m_storage.begin())
 	{
 		return false;
@@ -40,11 +45,6 @@ bool Application::begin()
 	delay(StartupScreenDurationMs);
 
 	if (!m_timer.begin())
-	{
-		return false;
-	}
-
-	if (!m_buzzer.begin())
 	{
 		return false;
 	}
