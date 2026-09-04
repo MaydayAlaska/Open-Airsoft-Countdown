@@ -7,10 +7,16 @@ namespace
 	constexpr uint32_t MaximumErrorMessageDurationMs = 2000;
 	constexpr uint32_t MaximumErrorCompensationSeconds = MaximumErrorMessageDurationMs / 1000;
 	constexpr uint32_t UserGreetingMessageDurationMs = 2000;
+	constexpr uint16_t CountdownBeepDurationMs = 80;
 }
 
 bool Application::begin()
 {
+	if (!m_buzzer.begin())
+	{
+		return false;
+	}
+
 	if (!m_storage.begin())
 	{
 		return false;
@@ -39,11 +45,6 @@ bool Application::begin()
 	delay(StartupScreenDurationMs);
 
 	if (!m_timer.begin())
-	{
-		return false;
-	}
-
-	if (!m_buzzer.begin())
 	{
 		return false;
 	}
@@ -88,12 +89,10 @@ void Application::update()
 	if (
 		m_mode == Mode::Running &&
 		secondTick &&
-		m_timer.getRemainingSeconds() > 0 &&
-		m_timer.getRemainingSeconds() <= 5 &&
 		m_storage.getConfig().soundEnabled
 	)
 	{
-		m_buzzer.beep(80);
+		m_buzzer.beep(CountdownBeepDurationMs);
 	}
 
 	const bool countdownFinishedThisUpdate =
@@ -447,11 +446,6 @@ void Application::finishCountdown()
 	m_disarmUidInput = "";
 	m_selectedUserId = 0;
 	m_lastDisplayedSeconds = 0;
-
-	if (m_storage.getConfig().soundEnabled)
-	{
-		m_buzzer.beep(3000);
-	}
 
 	m_display.showFinished(
 		m_errorCount,
