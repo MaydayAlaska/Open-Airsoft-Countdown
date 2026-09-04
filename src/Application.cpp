@@ -7,7 +7,6 @@ namespace
 	constexpr uint32_t MaximumErrorMessageDurationMs = 2000;
 	constexpr uint32_t MaximumErrorCompensationSeconds = MaximumErrorMessageDurationMs / 1000;
 	constexpr uint32_t UserGreetingMessageDurationMs = 2000;
-	constexpr uint16_t CountdownBeepDurationMs = 80;
 }
 
 bool Application::begin()
@@ -92,7 +91,7 @@ void Application::update()
 		m_storage.getConfig().soundEnabled
 	)
 	{
-		m_buzzer.beep(CountdownBeepDurationMs);
+		m_buzzer.beep(Timer::SecondTickPulseDurationMs);
 	}
 
 	const bool countdownFinishedThisUpdate =

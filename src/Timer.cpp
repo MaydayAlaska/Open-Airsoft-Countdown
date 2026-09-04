@@ -13,7 +13,8 @@ bool Timer::begin()
 	m_lastTickMillis = millis();
 	m_running = false;
 	m_finished = false;
-	m_ledState = false;
+	m_ledPulseActive = false;
+	m_ledPulseStartedAt = 0;
 	m_secondTick = false;
 
 	Serial.println("Timer initialized.");
@@ -24,13 +25,21 @@ bool Timer::begin()
 void Timer::update()
 {
 	m_secondTick = false;
+	const uint32_t currentMillis = millis();
+
+	if (
+		m_ledPulseActive &&
+		currentMillis - m_ledPulseStartedAt >= SecondTickPulseDurationMs
+	)
+	{
+		digitalWrite(StatusLedPin, LOW);
+		m_ledPulseActive = false;
+	}
 
 	if (!m_running)
 	{
 		return;
 	}
-
-	const uint32_t currentMillis = millis();
 
 	const uint32_t elapsedSeconds =
 		(currentMillis - m_lastTickMillis) / 1000UL;
@@ -42,11 +51,9 @@ void Timer::update()
 
 	m_lastTickMillis += elapsedSeconds * 1000UL;
 
-	if ((elapsedSeconds & 1U) != 0)
-	{
-		m_ledState = !m_ledState;
-		digitalWrite(StatusLedPin, m_ledState ? HIGH : LOW);
-	}
+	m_ledPulseStartedAt = currentMillis;
+	m_ledPulseActive = true;
+	digitalWrite(StatusLedPin, HIGH);
 
 	if (m_remainingSeconds > 0)
 	{
@@ -66,6 +73,7 @@ void Timer::update()
 	{
 		m_running = false;
 		m_finished = true;
+		m_ledPulseActive = false;
 
 		digitalWrite(StatusLedPin, HIGH);
 
@@ -79,7 +87,7 @@ void Timer::setDuration(uint32_t seconds)
 	m_remainingSeconds = seconds;
 	m_finished = false;
 	m_secondTick = false;
-	m_ledState = false;
+	m_ledPulseActive = false;
 
 	digitalWrite(StatusLedPin, LOW);
 
@@ -99,6 +107,7 @@ void Timer::setRemainingSeconds(uint32_t seconds)
 	{
 		m_running = false;
 		m_finished = true;
+		m_ledPulseActive = false;
 		digitalWrite(StatusLedPin, HIGH);
 		return;
 	}
@@ -128,7 +137,7 @@ void Timer::start()
 	m_running = true;
 	m_finished = false;
 	m_secondTick = false;
-	m_ledState = false;
+	m_ledPulseActive = false;
 
 	digitalWrite(StatusLedPin, LOW);
 
@@ -139,7 +148,7 @@ void Timer::stop()
 {
 	m_running = false;
 	m_secondTick = false;
-	m_ledState = false;
+	m_ledPulseActive = false;
 
 	digitalWrite(StatusLedPin, LOW);
 
@@ -152,7 +161,7 @@ void Timer::reset()
 	m_finished = false;
 	m_secondTick = false;
 	m_remainingSeconds = m_durationSeconds;
-	m_ledState = false;
+	m_ledPulseActive = false;
 
 	digitalWrite(StatusLedPin, LOW);
 

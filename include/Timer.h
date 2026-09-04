@@ -5,6 +5,8 @@
 class Timer
 {
 public:
+	static constexpr uint16_t SecondTickPulseDurationMs = 80;
+
 	bool begin();
 	void update();
 
@@ -31,6 +33,7 @@ private:
 
 	bool m_running = false;
 	bool m_finished = false;
-	bool m_ledState = false;
+	bool m_ledPulseActive = false;
+	uint32_t m_ledPulseStartedAt = 0;
 	bool m_secondTick = false;
 };
